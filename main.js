@@ -1,7 +1,7 @@
 import * as TR from 'three';
 
 // Constants
-const MAP_SIZE = 24;
+const MAP_SIZE = 48;
 const TILE_SIZE = 1;
 const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
 
@@ -11,7 +11,19 @@ const renderer = new TR.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const camera = new TR.OrthographicCamera(-MAP_SIZE / 2, MAP_SIZE / 2, MAP_SIZE / 2, -MAP_SIZE / 2, 0.1, MAP_SIZE * 2);
+// Calculate aspect ratio and adjust camera size
+const aspectRatio = window.innerWidth / window.innerHeight;
+const viewSize = MAP_SIZE / 2;
+
+let camera;
+if (aspectRatio >= 1) {
+  // Wide screen
+  camera = new TR.OrthographicCamera(-viewSize * aspectRatio, viewSize * aspectRatio, viewSize, -viewSize, 0.1, MAP_SIZE * 2);
+} else {
+  // Tall screen
+  camera = new TR.OrthographicCamera(-viewSize, viewSize, viewSize / aspectRatio, -viewSize / aspectRatio, 0.1, MAP_SIZE * 2);
+}
+
 camera.position.set(0, MAP_SIZE, 0);
 camera.lookAt(0, 0, 0);
 
@@ -100,3 +112,27 @@ renderer.setAnimationLoop(() => renderer.render(scene, camera));
 
 // Create the tile grid
 createTileGrid();
+
+// Handle window resizing to maintain aspect ratio and fill screen
+window.addEventListener('resize', onWindowResize);
+
+function onWindowResize() {
+  const newAspectRatio = window.innerWidth / window.innerHeight;
+
+  if (newAspectRatio >= 1) {
+    // Wide screen
+    camera.left = -viewSize * newAspectRatio;
+    camera.right = viewSize * newAspectRatio;
+    camera.top = viewSize;
+    camera.bottom = -viewSize;
+  } else {
+    // Tall screen
+    camera.left = -viewSize;
+    camera.right = viewSize;
+    camera.top = viewSize / newAspectRatio;
+    camera.bottom = -viewSize / newAspectRatio;
+  }
+
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
