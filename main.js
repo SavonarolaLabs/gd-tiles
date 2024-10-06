@@ -4,6 +4,7 @@ import * as TR from 'three';
 const MAP_SIZE = 6;
 const TILE_SIZE = 1;
 const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
+const GRID_COLOR = 0x888888; // Gray color for the grid
 
 // Scene, Renderer, and Camera setup
 const scene = new TR.Scene();
@@ -18,10 +19,8 @@ const viewSize = MAP_SIZE / 2;
 
 let camera;
 if (aspectRatio >= 1) {
-  // Wide screen
   camera = new TR.OrthographicCamera(-viewSize * aspectRatio, viewSize * aspectRatio, viewSize, -viewSize, 0.1, MAP_SIZE * 2);
 } else {
-  // Tall screen
   camera = new TR.OrthographicCamera(-viewSize, viewSize, viewSize / aspectRatio, -viewSize / aspectRatio, 0.1, MAP_SIZE * 2);
 }
 
@@ -53,7 +52,6 @@ async function createTileGrid() {
                   (z === MAP_SIZE - 1) ? tileTextures[21] : 
                   tileTextures[11];
       const tileMaterial = new TR.MeshBasicMaterial({ map: tileIndex, side: TR.DoubleSide });
-
       const tile = new TR.Mesh(tileGeometry, tileMaterial);
 
       // Position each tile and rotate to face upward
@@ -63,6 +61,37 @@ async function createTileGrid() {
       scene.add(tile);
     }
   }
+
+  // Add grid helper for a clean, elegant grid
+  function createThickGrid(size, divisions, thickness, color, opacity = 0.3) {
+    const material = new TR.MeshBasicMaterial({ color, transparent: true, opacity });
+    const halfSize = size / 2;
+
+    // Create a group to hold all grid lines
+    const gridGroup = new TR.Group();
+
+    // Create vertical lines
+    for (let i = 0; i <= divisions; i++) {
+      const position = -halfSize + (i * size) / divisions;
+
+      // Vertical line geometry
+      const verticalLine = new TR.Mesh(new TR.BoxGeometry(thickness, thickness, size), material);
+      verticalLine.position.set(position, 0, 0);
+      gridGroup.add(verticalLine);
+
+      // Horizontal line geometry
+      const horizontalLine = new TR.Mesh(new TR.BoxGeometry(size, thickness, thickness), material);
+      horizontalLine.position.set(0, 0, position);
+      gridGroup.add(horizontalLine);
+    }
+
+    return gridGroup;
+  }
+
+  // Usage
+  const thickGrid = createThickGrid(MAP_SIZE, MAP_SIZE, 0.03, GRID_COLOR);
+  thickGrid.rotation.y = Math.PI / 2; // Ensure correct alignment
+  scene.add(thickGrid);
 }
 
 // Load the tilemap texture
@@ -133,13 +162,11 @@ function onWindowResize() {
   const newAspectRatio = window.innerWidth / window.innerHeight;
 
   if (newAspectRatio >= 1) {
-    // Wide screen
     camera.left = -viewSize * newAspectRatio;
     camera.right = viewSize * newAspectRatio;
     camera.top = viewSize;
     camera.bottom = -viewSize;
   } else {
-    // Tall screen
     camera.left = -viewSize;
     camera.right = viewSize;
     camera.top = viewSize / newAspectRatio;
