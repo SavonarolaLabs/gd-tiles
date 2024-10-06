@@ -1,0 +1,88 @@
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite
+dist
+.vite
+.cache
+
+# MacOS
+.DS_Store
+
+# Editor Directories and Files
+.idea
+.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Temporary files and builds
+*.tmp
+*.temp
+*.swp
+*.pid
+*.seed
+*.bak
+*.orig
+
+# ESLint
+.eslintcache
+
+# Output of build tools
+out/
+build/
+coverage/
+
+# NPM packages
+*.tgz
+
+# JetBrains IDE
+*.iml
+.idea/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Svelte/Vite HMR
+.svelte-kit
+
+# Miscellaneous
+*.local
+.env.local
+.env.*.local
+
+# Private keys and sensitive files
+.env
+.env.*
+*.pem
+
+# Ignore compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# WebGL-related binaries
+*.obj
+*.mtl
+*.fbx
+*.blend
+
+# Image assets for game dev
+*.psd
+*.xcf
+*.kra
+
+# Ignore package-lock.json or yarn.lock if necessary
+# Uncomment the following lines if you don't want to track lock files
+# package-lock.json
+# yarn.lock
+
+temp
