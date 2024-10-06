@@ -1,7 +1,7 @@
 import * as TR from 'three';
 
 // Constants
-const MAP_SIZE = 48;
+const MAP_SIZE = 6;
 const TILE_SIZE = 1;
 const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
 
@@ -41,7 +41,19 @@ async function createTileGrid() {
   for (let x = 0; x < MAP_SIZE; x++) {
     for (let z = 0; z < MAP_SIZE; z++) {
       const tileGeometry = new TR.PlaneGeometry(TILE_SIZE, TILE_SIZE);
-      const tileMaterial = new TR.MeshBasicMaterial({ map: tileTextures[(x + z) % tileTextures.length], side: TR.DoubleSide });
+
+      // prettier-ignore
+      const tileIndex = (x === 0 && z === 0) ? tileTextures[0] :
+                  (x === MAP_SIZE - 1 && z === 0) ? tileTextures[2] :
+                  (x === 0 && z === MAP_SIZE - 1) ? tileTextures[20] :
+                  (x === MAP_SIZE - 1 && z === MAP_SIZE - 1) ? tileTextures[22] :
+                  (x === 0) ? tileTextures[10] :
+                  (x === MAP_SIZE - 1) ? tileTextures[12] :
+                  (z === 0) ? tileTextures[1] :
+                  (z === MAP_SIZE - 1) ? tileTextures[21] : 
+                  tileTextures[11];
+      const tileMaterial = new TR.MeshBasicMaterial({ map: tileIndex, side: TR.DoubleSide });
+
       const tile = new TR.Mesh(tileGeometry, tileMaterial);
 
       // Position each tile and rotate to face upward
@@ -72,7 +84,7 @@ function createTileTextures(texture) {
   const cols = 10; // Number of columns in the tilemap
 
   // Create sub-textures from the main tilemap
-  for (let row = 0; row < rows; row++) {
+  for (let row = rows - 1; row > -1; row--) {
     for (let col = 0; col < cols; col++) {
       const u = col / cols;
       const v = row / rows;
