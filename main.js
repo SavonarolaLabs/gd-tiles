@@ -8,6 +8,7 @@ const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
 // Scene, Renderer, and Camera setup
 const scene = new TR.Scene();
 const renderer = new TR.WebGLRenderer();
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
