@@ -12,6 +12,7 @@ const scene = new TR.Scene();
 const renderer = new TR.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = TR.SRGBColorSpace; // Updated property
 document.body.appendChild(renderer.domElement);
 
 // Calculate aspect ratio and adjust camera size
@@ -41,7 +42,11 @@ async function createWarrior() {
   const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * 2, TILE_SIZE * 2);
 
   // Use the correct texture and ensure transparency is enabled if needed
-  const tileMaterial = new TR.MeshBasicMaterial({ map: txtr[0], side: TR.FrontSide, transparent: true });
+  const tileMaterial = new TR.MeshBasicMaterial({
+    map: txtr[0],
+    side: TR.FrontSide,
+    transparent: true,
+  });
   warriorTile = new TR.Mesh(tileGeometry, tileMaterial);
 
   let x = 1,
@@ -76,7 +81,10 @@ async function createTileGrid() {
                   (z === 0) ? tileTextures[1] :
                   (z === MAP_SIZE - 1) ? tileTextures[21] : 
                   tileTextures[11];
-      const tileMaterial = new TR.MeshBasicMaterial({ map: tileIndex, side: TR.DoubleSide });
+      const tileMaterial = new TR.MeshBasicMaterial({
+        map: tileIndex,
+        side: TR.DoubleSide,
+      });
       const tile = new TR.Mesh(tileGeometry, tileMaterial);
 
       // Position each tile and rotate to face upward
@@ -89,7 +97,11 @@ async function createTileGrid() {
 
   // Add grid helper for a clean, elegant grid
   function createThickGrid(size, divisions, thickness, color, opacity = 0.3) {
-    const material = new TR.MeshBasicMaterial({ color, transparent: true, opacity });
+    const material = new TR.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+    });
     const halfSize = size / 2;
 
     // Create a group to hold all grid lines
@@ -124,6 +136,7 @@ function loadTilemapTexture(url) {
   return new Promise((resolve) => {
     const loader = new TR.TextureLoader();
     loader.load(url, (texture) => {
+      texture.colorSpace = TR.SRGBColorSpace; // Updated property
       texture.magFilter = TR.NearestFilter;
       texture.minFilter = TR.NearestFilter;
       resolve(texture);
@@ -147,6 +160,7 @@ function createTileTextures(texture, rows, cols) {
       const tileTexture = texture.clone();
       tileTexture.repeat.set(uSize, vSize);
       tileTexture.offset.set(u, v);
+      tileTexture.colorSpace = TR.SRGBColorSpace; // Ensure colorSpace is set
       tileTexture.needsUpdate = true;
 
       tileTextures.push(tileTexture);
