@@ -1,9 +1,10 @@
 import * as TR from 'three';
 
 // Constants
-const MAP_SIZE = 6;
+const MAP_SIZE = 12;
 const TILE_SIZE = 1;
 const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
+const WARRIOR_URL = 'assets/Tiny Swords/Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png';
 const GRID_COLOR = 0x888888; // Gray color for the grid
 
 // Scene, Renderer, and Camera setup
@@ -31,10 +32,27 @@ camera.lookAt(0, 0, 0);
 const raycaster = new TR.Raycaster();
 const mouse = new TR.Vector2();
 
+// Load warrior
+async function createWarrior() {
+  const texture = await loadTilemapTexture(WARRIOR_URL);
+  const txtr = createTileTextures(texture, 6, 8);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+
+  const tileMaterial = new TR.MeshBasicMaterial({ map: txtr[0], side: TR.DoubleSide });
+  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+
+  // Position each tile and rotate to face upward
+  tile.position.set(0, 0, 0);
+  tile.rotation.x = -Math.PI / 2;
+  //tile.rotation.y = 1;
+
+  scene.add(tile);
+}
+
 // Load tilemap texture and create individual tiles
 async function createTileGrid() {
   const texture = await loadTilemapTexture(TILEMAP_URL);
-  const tileTextures = createTileTextures(texture);
+  const tileTextures = createTileTextures(texture, 4, 10);
 
   // Create a grid of tiles
   for (let x = 0; x < MAP_SIZE; x++) {
@@ -107,10 +125,8 @@ function loadTilemapTexture(url) {
 }
 
 // Create tile textures from the tilemap
-function createTileTextures(texture) {
+function createTileTextures(texture, rows, cols) {
   const tileTextures = [];
-  const rows = 4; // Number of rows in the tilemap
-  const cols = 10; // Number of columns in the tilemap
 
   // Create sub-textures from the main tilemap
   for (let row = rows - 1; row > -1; row--) {
@@ -153,7 +169,9 @@ window.addEventListener('click', onClick);
 renderer.setAnimationLoop(() => renderer.render(scene, camera));
 
 // Create the tile grid
-createTileGrid();
+await createTileGrid();
+
+await createWarrior();
 
 // Handle window resizing to maintain aspect ratio and fill screen
 window.addEventListener('resize', onWindowResize);
