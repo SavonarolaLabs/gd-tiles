@@ -32,21 +32,28 @@ camera.lookAt(0, 0, 0);
 const raycaster = new TR.Raycaster();
 const mouse = new TR.Vector2();
 
+let warriorTile;
+
 // Load warrior
 async function createWarrior() {
   const texture = await loadTilemapTexture(WARRIOR_URL);
-  const txtr = createTileTextures(texture, 6, 8);
-  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE, TILE_SIZE);
+  const txtr = createTileTextures(texture, 8, 6);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * 2, TILE_SIZE * 2);
 
-  const tileMaterial = new TR.MeshBasicMaterial({ map: txtr[0], side: TR.DoubleSide });
-  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+  // Use the correct texture and ensure transparency is enabled if needed
+  const tileMaterial = new TR.MeshBasicMaterial({ map: txtr[0], side: TR.FrontSide, transparent: true });
+  warriorTile = new TR.Mesh(tileGeometry, tileMaterial);
 
-  // Position each tile and rotate to face upward
-  tile.position.set(0, 0, 0);
-  tile.rotation.x = -Math.PI / 2;
-  //tile.rotation.y = 1;
+  let x = 1,
+    z = 1;
+  warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, z - MAP_SIZE / 2 + TILE_SIZE / 2);
+  warriorTile.rotation.x = -Math.PI / 2; // Face upward
 
-  scene.add(tile);
+  scene.add(warriorTile);
+}
+
+function setWarriorPosition(x, y) {
+  warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2);
 }
 
 // Load tilemap texture and create individual tiles
@@ -108,7 +115,7 @@ async function createTileGrid() {
 
   // Usage
   const thickGrid = createThickGrid(MAP_SIZE, MAP_SIZE, 0.03, GRID_COLOR);
-  thickGrid.rotation.y = Math.PI / 2; // Ensure correct alignment
+  thickGrid.rotation.y = Math.PI / 2;
   scene.add(thickGrid);
 }
 
@@ -159,6 +166,7 @@ function onClick(event) {
     const { point } = intersects[0];
     const x = Math.floor(point.x + MAP_SIZE / 2);
     const z = Math.floor(point.z + MAP_SIZE / 2);
+    setWarriorPosition(x, z);
     console.log('Tile clicked:', { x, z });
   }
 }
@@ -170,7 +178,6 @@ renderer.setAnimationLoop(() => renderer.render(scene, camera));
 
 // Create the tile grid
 await createTileGrid();
-
 await createWarrior();
 
 // Handle window resizing to maintain aspect ratio and fill screen
