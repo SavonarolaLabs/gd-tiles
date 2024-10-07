@@ -5,6 +5,13 @@ const MAP_SIZE = 12;
 const TILE_SIZE = 1;
 const TILEMAP_URL = 'assets/Tiny Swords/Terrain/Ground/Tilemap_Flat.png';
 const WARRIOR_URL = 'assets/Tiny Swords/Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png';
+const WARRIOR_SCALE = 2.3;
+const CASTLE_URL = 'assets/Tiny Swords/Factions/Knights/Buildings/Castle/Castle_Blue.png';
+const CASTLE_SCALE = 3.2;
+
+const TREE_URL = 'assets/Tiny Swords/Resources/Trees/Tree.png';
+const TREE_SCALE = 1.3;
+
 const GRID_COLOR = 0x888888; // Gray color for the grid
 
 // Scene, Renderer, and Camera setup
@@ -33,13 +40,50 @@ camera.lookAt(0, 0, 0);
 const raycaster = new TR.Raycaster();
 const mouse = new TR.Vector2();
 
-let warriorTile;
+async function createTree(x, y) {
+  const texture = await loadTilemapTexture(TREE_URL);
+  const txtr = createTileTextures(texture, 3, 4);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * TREE_SCALE, TILE_SIZE * TREE_SCALE);
+
+  const tileMaterial = new TR.MeshBasicMaterial({
+    map: txtr[0],
+    side: TR.FrontSide,
+    transparent: true,
+  });
+  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+
+  // Position each tile and rotate to face upward
+  tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2 - TILE_SIZE * TREE_SCALE * 0.1);
+  tile.rotation.x = -Math.PI / 2;
+
+  scene.add(tile);
+}
+
+async function createCastle(x, y) {
+  const texture = await loadTilemapTexture(CASTLE_URL);
+  const txtr = createTileTextures(texture, 1, 1);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * CASTLE_SCALE, TILE_SIZE * CASTLE_SCALE);
+
+  const tileMaterial = new TR.MeshBasicMaterial({
+    map: txtr[0],
+    side: TR.FrontSide,
+    transparent: true,
+  });
+  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+
+  // Position each tile and rotate to face upward
+  tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2);
+  tile.rotation.x = -Math.PI / 2;
+
+  scene.add(tile);
+}
 
 // Load warrior
+let warriorTile;
 async function createWarrior() {
   const texture = await loadTilemapTexture(WARRIOR_URL);
   const txtr = createTileTextures(texture, 8, 6);
-  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * 2, TILE_SIZE * 2);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * WARRIOR_SCALE, TILE_SIZE * WARRIOR_SCALE);
 
   // Use the correct texture and ensure transparency is enabled if needed
   const tileMaterial = new TR.MeshBasicMaterial({
@@ -49,16 +93,14 @@ async function createWarrior() {
   });
   warriorTile = new TR.Mesh(tileGeometry, tileMaterial);
 
-  let x = 1,
-    z = 1;
-  warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, z - MAP_SIZE / 2 + TILE_SIZE / 2);
+  setWarriorPosition(1, 1);
   warriorTile.rotation.x = -Math.PI / 2; // Face upward
 
   scene.add(warriorTile);
 }
 
 function setWarriorPosition(x, y) {
-  warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2);
+  warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2 - 0.2);
 }
 
 // Load tilemap texture and create individual tiles
@@ -192,7 +234,9 @@ renderer.setAnimationLoop(() => renderer.render(scene, camera));
 
 // Create the tile grid
 await createTileGrid();
+await createCastle(2, 4);
 await createWarrior();
+await createTree(0, 1);
 
 // Handle window resizing to maintain aspect ratio and fill screen
 window.addEventListener('resize', onWindowResize);
