@@ -12,6 +12,8 @@ const TREE_URL = 'assets/Tiny Swords/Resources/Trees/Tree.png';
 const TREE_SCALE = 1.3;
 const GRID_COLOR = 0x888888; // Gray color for the grid
 
+import { parseGIF, decompressFrames } from 'gifuct-js';
+
 // Scene, Renderer, and Camera setup
 const scene = new TR.Scene();
 const renderer = new TR.WebGLRenderer();
@@ -112,6 +114,54 @@ function setWarriorPosition(x, y) {
   warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2 - 0.2);
 }
 
+// GIF animation variables
+const GIF_URL = 'assets/gif/castingBig.gif';
+let gifFrames = [];
+let gifTexture;
+let gifPlane;
+let currentGifFrame = 0;
+let lastGifFrameTime = 0;
+
+// Frame switching logic
+async function loadGifFrames(url) {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  const gif = parseGIF(arrayBuffer);
+  const frames = decompressFrames(gif, true);
+
+  // Store each frame's ImageBitmap and delay (convert delay to milliseconds)
+  for (const frame of frames) {
+    const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
+    const bitmap = await createImageBitmap(imageData);
+    const delay = frame.delay * 10; // Convert from hundredths of a second to milliseconds
+    gifFrames.push({ bitmap, delay });
+  }
+}
+
+async function initGif() {
+  // Load GIF frames
+  await loadGifFrames(GIF_URL);
+
+  // Create a texture with the first frame
+  gifTexture = new TR.Texture(gifFrames[0].bitmap);
+  gifTexture.needsUpdate = true;
+  gifTexture.colorSpace = TR.SRGBColorSpace;
+
+  // Create plane geometry to display the GIF
+  const geometry = new TR.PlaneGeometry(2, 2);
+  const material = new TR.MeshBasicMaterial({
+    map: gifTexture,
+    transparent: true,
+  });
+  gifPlane = new TR.Mesh(geometry, material);
+  gifPlane.position.set(0, 0.1, 0); // Adjust position as needed
+  gifPlane.rotation.x = -Math.PI / 2; // Face upward
+  gifPlane.scale.y = -1;
+
+  scene.add(gifPlane);
+}
+await initGif();
+
 // Function to update the warrior frame
 function updateWarriorFrame(time) {
   if (time - lastWarriorFrameTime > warriorFrameSpeed) {
@@ -126,10 +176,23 @@ function updateWarriorFrame(time) {
   }
 }
 
+// Function to update the GIF frame
+function updateGifFrame(time) {
+  if (time - lastGifFrameTime > gifFrames[currentGifFrame].delay) {
+    currentGifFrame = (currentGifFrame + 1) % gifFrames.length;
+    gifTexture.image = gifFrames[currentGifFrame].bitmap;
+    gifTexture.needsUpdate = true;
+    lastGifFrameTime = time;
+  }
+}
+
 // Render loop
 renderer.setAnimationLoop((time) => {
   if (warriorTile) {
     updateWarriorFrame(time);
+  }
+  if (gifPlane) {
+    updateGifFrame(time);
   }
   renderer.render(scene, camera);
 });
