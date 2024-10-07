@@ -116,6 +116,7 @@ function setWarriorPosition(x, y) {
 
 // GIF animation variables
 const GIF_URL = 'assets/gif/castingBig.gif';
+//const GIF_URL = 'assets/gif/idle.jpg';
 let gifFrames = [];
 let gifTexture;
 let gifPlane;
@@ -133,7 +134,8 @@ async function loadGifFrames(url) {
   for (const frame of frames) {
     const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
     const bitmap = await createImageBitmap(imageData);
-    const delay = frame.delay * 10; // Convert from hundredths of a second to milliseconds
+    //const delay = frame.delay * 2.5; // Convert from hundredths of a second to milliseconds
+    const delay = frame.delay; // Convert from hundredths of a second to milliseconds
     gifFrames.push({ bitmap, delay });
   }
 }
@@ -148,7 +150,7 @@ async function initGif() {
   gifTexture.colorSpace = TR.SRGBColorSpace;
 
   // Create plane geometry to display the GIF
-  const geometry = new TR.PlaneGeometry(2, 2);
+  const geometry = new TR.PlaneGeometry(2.5, 2.5);
   const material = new TR.MeshBasicMaterial({
     map: gifTexture,
     transparent: true,
@@ -180,6 +182,7 @@ function updateWarriorFrame(time) {
 function updateGifFrame(time) {
   if (time - lastGifFrameTime > gifFrames[currentGifFrame].delay) {
     currentGifFrame = (currentGifFrame + 1) % gifFrames.length;
+    //currentGifFrame = (currentGifFrame + 1) % 3;
     gifTexture.image = gifFrames[currentGifFrame].bitmap;
     gifTexture.needsUpdate = true;
     lastGifFrameTime = time;
