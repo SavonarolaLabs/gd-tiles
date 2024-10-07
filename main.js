@@ -8,10 +8,8 @@ const WARRIOR_URL = 'assets/Tiny Swords/Factions/Knights/Troops/Warrior/Blue/War
 const WARRIOR_SCALE = 2.3;
 const CASTLE_URL = 'assets/Tiny Swords/Factions/Knights/Buildings/Castle/Castle_Blue.png';
 const CASTLE_SCALE = 3.2;
-
 const TREE_URL = 'assets/Tiny Swords/Resources/Trees/Tree.png';
 const TREE_SCALE = 1.3;
-
 const GRID_COLOR = 0x888888; // Gray color for the grid
 
 // Scene, Renderer, and Camera setup
@@ -39,6 +37,15 @@ camera.lookAt(0, 0, 0);
 // Raycaster and mouse setup
 const raycaster = new TR.Raycaster();
 const mouse = new TR.Vector2();
+
+// Warrior animation variables
+let warriorTile;
+let warriorTexture;
+const warriorFrames = { cols: 6, rows: 8 }; // Define the number of columns and rows of the sprite sheet
+const warriorFrameCount = 6; // Total number of frames
+const warriorFrameSpeed = 100; // Milliseconds per frame
+let currentWarriorFrame = 0; // Current frame
+let lastWarriorFrameTime = 0; // Last frame update time
 
 async function createTree(x, y) {
   const texture = await loadTilemapTexture(TREE_URL);
@@ -79,15 +86,17 @@ async function createCastle(x, y) {
 }
 
 // Load warrior
-let warriorTile;
 async function createWarrior() {
-  const texture = await loadTilemapTexture(WARRIOR_URL);
-  const txtr = createTileTextures(texture, 8, 6);
+  warriorTexture = await loadTilemapTexture(WARRIOR_URL);
+  warriorTexture.wrapS = TR.ClampToEdgeWrapping;
+  warriorTexture.wrapT = TR.ClampToEdgeWrapping;
+  warriorTexture.repeat.set(1 / warriorFrames.cols, 1 / warriorFrames.rows);
+
   const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * WARRIOR_SCALE, TILE_SIZE * WARRIOR_SCALE);
 
   // Use the correct texture and ensure transparency is enabled if needed
   const tileMaterial = new TR.MeshBasicMaterial({
-    map: txtr[0],
+    map: warriorTexture,
     side: TR.FrontSide,
     transparent: true,
   });
@@ -102,6 +111,28 @@ async function createWarrior() {
 function setWarriorPosition(x, y) {
   warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2 - 0.2);
 }
+
+// Function to update the warrior frame
+function updateWarriorFrame(time) {
+  if (time - lastWarriorFrameTime > warriorFrameSpeed) {
+    currentWarriorFrame = (currentWarriorFrame + 1) % warriorFrameCount; // Loop frames
+    const col = currentWarriorFrame % warriorFrames.cols;
+    const row = Math.floor(currentWarriorFrame / warriorFrames.cols);
+
+    // Calculate texture offset based on the frame position
+    warriorTexture.offset.x = col / warriorFrames.cols;
+    warriorTexture.offset.y = 1 - (row + 1) / warriorFrames.rows; // Adjust for Three.js Y-up coordinate system
+    lastWarriorFrameTime = time;
+  }
+}
+
+// Render loop
+renderer.setAnimationLoop((time) => {
+  if (warriorTile) {
+    updateWarriorFrame(time);
+  }
+  renderer.render(scene, camera);
+});
 
 // Load tilemap texture and create individual tiles
 async function createTileGrid() {
@@ -229,10 +260,7 @@ function onClick(event) {
 
 window.addEventListener('click', onClick);
 
-// Render loop
-renderer.setAnimationLoop(() => renderer.render(scene, camera));
-
-// Create the tile grid
+// Create the tile grid and entities
 await createTileGrid();
 await createCastle(2, 4);
 await createWarrior();
