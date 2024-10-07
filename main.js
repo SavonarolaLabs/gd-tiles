@@ -43,48 +43,41 @@ const mouse = new TR.Vector2();
 // Warrior animation variables
 let warriorTile;
 let warriorTexture;
-const warriorFrames = { cols: 6, rows: 8 }; // Define the number of columns and rows of the sprite sheet
-const warriorFrameCount = 6; // Total number of frames
-const warriorFrameSpeed = 100; // Milliseconds per frame
-let currentWarriorFrame = 0; // Current frame
-let lastWarriorFrameTime = 0; // Last frame update time
+const warriorFrames = { cols: 6, rows: 8 };
+const warriorFrameCount = 6;
+const warriorFrameSpeed = 100;
+let currentWarriorFrame = 0;
+let lastWarriorFrameTime = 0;
+
+// Tree animation variables
+let treeTile;
+let treeTexture;
+const treeFrames = { cols: 4, rows: 3 };
+const treeFrameCount = 4;
+const treeFrameSpeed = 270;
+let currentTreeFrame = 0;
+let lastTreeFrameTime = 0;
 
 async function createTree(x, y) {
-  const texture = await loadTilemapTexture(TREE_URL);
-  const txtr = createTileTextures(texture, 3, 4);
+  treeTexture = await loadTilemapTexture(TREE_URL);
+  treeTexture.wrapS = TR.ClampToEdgeWrapping;
+  treeTexture.wrapT = TR.ClampToEdgeWrapping;
+  treeTexture.repeat.set(1 / treeFrames.cols, 1 / treeFrames.rows);
+
   const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * TREE_SCALE, TILE_SIZE * TREE_SCALE);
 
   const tileMaterial = new TR.MeshBasicMaterial({
-    map: txtr[0],
+    map: treeTexture,
     side: TR.FrontSide,
     transparent: true,
   });
-  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+  treeTile = new TR.Mesh(tileGeometry, tileMaterial);
 
   // Position each tile and rotate to face upward
-  tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2 - TILE_SIZE * TREE_SCALE * 0.1);
-  tile.rotation.x = -Math.PI / 2;
+  treeTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2 - TILE_SIZE * TREE_SCALE * 0.1);
+  treeTile.rotation.x = -Math.PI / 2;
 
-  scene.add(tile);
-}
-
-async function createCastle(x, y) {
-  const texture = await loadTilemapTexture(CASTLE_URL);
-  const txtr = createTileTextures(texture, 1, 1);
-  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * CASTLE_SCALE, TILE_SIZE * CASTLE_SCALE);
-
-  const tileMaterial = new TR.MeshBasicMaterial({
-    map: txtr[0],
-    side: TR.FrontSide,
-    transparent: true,
-  });
-  const tile = new TR.Mesh(tileGeometry, tileMaterial);
-
-  // Position each tile and rotate to face upward
-  tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2);
-  tile.rotation.x = -Math.PI / 2;
-
-  scene.add(tile);
+  scene.add(treeTile);
 }
 
 // Load warrior
@@ -112,6 +105,25 @@ async function createWarrior() {
 
 function setWarriorPosition(x, y) {
   warriorTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.2, y - MAP_SIZE / 2 + TILE_SIZE / 2 - 0.2);
+}
+
+async function createCastle(x, y) {
+  const texture = await loadTilemapTexture(CASTLE_URL);
+  const txtr = createTileTextures(texture, 1, 1);
+  const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * CASTLE_SCALE, TILE_SIZE * CASTLE_SCALE);
+
+  const tileMaterial = new TR.MeshBasicMaterial({
+    map: txtr[0],
+    side: TR.FrontSide,
+    transparent: true,
+  });
+  const tile = new TR.Mesh(tileGeometry, tileMaterial);
+
+  // Position each tile and rotate to face upward
+  tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2);
+  tile.rotation.x = -Math.PI / 2;
+
+  scene.add(tile);
 }
 
 // GIF animation variables
@@ -189,10 +201,26 @@ function updateGifFrame(time) {
   }
 }
 
+function updateTreeFrame(time) {
+  if (time - lastTreeFrameTime > treeFrameSpeed) {
+    currentTreeFrame = (currentTreeFrame + 1) % treeFrameCount; // Loop frames
+    const col = currentTreeFrame % treeFrames.cols;
+    const row = Math.floor(currentTreeFrame / treeFrames.cols);
+
+    // Calculate texture offset based on the frame position
+    treeTexture.offset.x = col / treeFrames.cols;
+    treeTexture.offset.y = 1 - (row + 1) / treeFrames.rows;
+    lastTreeFrameTime = time;
+  }
+}
+
 // Render loop
 renderer.setAnimationLoop((time) => {
   if (warriorTile) {
     updateWarriorFrame(time);
+  }
+  if (treeTile) {
+    updateTreeFrame(time);
   }
   if (gifPlane) {
     updateGifFrame(time);
@@ -275,7 +303,7 @@ function loadTilemapTexture(url) {
   return new Promise((resolve) => {
     const loader = new TR.TextureLoader();
     loader.load(url, (texture) => {
-      texture.colorSpace = TR.SRGBColorSpace; // Updated property
+      texture.colorSpace = TR.SRGBColorSpace;
       texture.magFilter = TR.NearestFilter;
       texture.minFilter = TR.NearestFilter;
       resolve(texture);
