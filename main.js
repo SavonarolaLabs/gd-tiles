@@ -371,8 +371,8 @@ await createWarrior();
 await createTree(0, 1);
 
 await loadHolyElemental();
-await loadHolyElementalGLTF();
-await loadHolyElementalFBX();
+
+let previousTime = 0;
 
 async function loadHolyElemental() {
   const loader = new GLTFLoader();
@@ -382,52 +382,45 @@ async function loadHolyElemental() {
       const model = gltf.scene;
 
       // Adjust model position and scale to fit the scene
-      model.position.set(0, 1, 0); // Adjust as needed
-      model.rotation.x = -Math.PI / 2; // Rotate if necessary
-      //model.scale.set(0.2, 0.2, 0.2); // Adjust scale as needed
-      model.scale.set(1, 1, 1); // Adjust values as needed
+      model.position.set(0, 1, 0);
+      model.rotation.x = -Math.PI / 2;
+      model.scale.set(2, 2, 2);
 
       scene.add(model);
+
+      // Load animations separately
+      const animLoader = new GLTFLoader(); // Or FBXLoader if your animation is in FBX format
+      animLoader.load('3d/A_HolyElemental_Idle.glb', (animGltf) => {
+        const mixer = new TR.AnimationMixer(model);
+
+        if (animGltf.animations.length > 0) {
+          animGltf.animations.forEach((clip) => {
+            const action = mixer.clipAction(clip);
+
+            action.play();
+
+            // Set the playback speed
+            action.timeScale = 1; // 2x speed (increase for faster, decrease for slower)
+          });
+
+          // Add update logic for animation using delta time
+          function animate(time) {
+            const deltaTime = (time - previousTime) * 0.001; // Convert to seconds
+            mixer.update(deltaTime);
+            previousTime = time;
+
+            renderer.render(scene, camera);
+          }
+
+          renderer.setAnimationLoop(animate);
+        } else {
+          console.log('no animations found');
+        }
+      });
     },
     undefined,
     (error) => {
       console.error('Error loading GLB model:', error);
-    }
-  );
-}
-
-async function loadHolyElementalGLTF() {
-  const loader = new GLTFLoader();
-  loader.load(
-    '3d/SK_HolyElemental.gltf', // Adjust path as needed
-    (gltf) => {
-      const model = gltf.scene;
-
-      model.position.set(2, 1, 0); // Adjust position to separate from other models
-      model.scale.set(1, 1, 1); // Adjust scale as needed
-
-      scene.add(model);
-    },
-    undefined,
-    (error) => {
-      console.error('Error loading GLTF model:', error);
-    }
-  );
-}
-
-async function loadHolyElementalFBX() {
-  const loader = new FBXLoader();
-  loader.load(
-    '3d/SK_HolyElemental.fbx', // Adjust path as needed
-    (fbx) => {
-      fbx.position.set(-2, 1, 0); // Adjust position to separate from other models
-      fbx.scale.set(0.01, 0.01, 0.01); // FBX models often need more scaling down
-
-      scene.add(fbx);
-    },
-    undefined,
-    (error) => {
-      console.error('Error loading FBX model:', error);
     }
   );
 }
