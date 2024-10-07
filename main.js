@@ -1,4 +1,7 @@
 import * as TR from 'three';
+import { parseGIF, decompressFrames } from 'gifuct-js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 // Constants
 const MAP_SIZE = 16;
@@ -10,18 +13,14 @@ const CASTLE_URL = 'assets/Tiny Swords/Factions/Knights/Buildings/Castle/Castle_
 const CASTLE_SCALE = 3.2;
 const TREE_URL = 'assets/Tiny Swords/Resources/Trees/Tree.png';
 const TREE_SCALE = 1.3;
-const GRID_COLOR = 0x888888; // Gray color for the grid
-
-import { parseGIF, decompressFrames } from 'gifuct-js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+const GRID_COLOR = 0x888888;
 
 // Scene, Renderer, and Camera setup
 const scene = new TR.Scene();
 const renderer = new TR.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputColorSpace = TR.SRGBColorSpace; // Updated property
+renderer.outputColorSpace = TR.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
 // Calculate aspect ratio and adjust camera size
@@ -75,14 +74,12 @@ async function createTree(x, y) {
   });
   treeTile = new TR.Mesh(tileGeometry, tileMaterial);
 
-  // Position each tile and rotate to face upward
   treeTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2 - TILE_SIZE * TREE_SCALE * 0.1);
   treeTile.rotation.x = -Math.PI / 2;
 
   scene.add(treeTile);
 }
 
-// Load warrior
 async function createWarrior() {
   warriorTexture = await loadTilemapTexture(WARRIOR_URL);
   warriorTexture.wrapS = TR.ClampToEdgeWrapping;
@@ -91,7 +88,6 @@ async function createWarrior() {
 
   const tileGeometry = new TR.PlaneGeometry(TILE_SIZE * WARRIOR_SCALE, TILE_SIZE * WARRIOR_SCALE);
 
-  // Use the correct texture and ensure transparency is enabled if needed
   const tileMaterial = new TR.MeshBasicMaterial({
     map: warriorTexture,
     side: TR.FrontSide,
@@ -100,7 +96,7 @@ async function createWarrior() {
   warriorTile = new TR.Mesh(tileGeometry, tileMaterial);
 
   setWarriorPosition(1, 1);
-  warriorTile.rotation.x = -Math.PI / 2; // Face upward
+  warriorTile.rotation.x = -Math.PI / 2;
 
   scene.add(warriorTile);
 }
@@ -121,30 +117,25 @@ async function createCastle(x, y) {
   });
   const tile = new TR.Mesh(tileGeometry, tileMaterial);
 
-  // Position each tile and rotate to face upward
   tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2);
   tile.rotation.x = -Math.PI / 2;
 
   scene.add(tile);
 }
 
-// GIF animation variables
 const GIF_URL = 'assets/gif/castingBig.gif';
-//const GIF_URL = 'assets/gif/idle.jpg';
 let gifFrames = [];
 let gifTexture;
 let gifPlane;
 let currentGifFrame = 0;
 let lastGifFrameTime = 0;
 
-// Frame switching logic
 async function loadGifFrames(url) {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
   const gif = parseGIF(arrayBuffer);
   const frames = decompressFrames(gif, true);
 
-  // Store each frame's ImageBitmap and delay (convert delay to milliseconds)
   for (const frame of frames) {
     const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
     const bitmap = await createImageBitmap(imageData);
@@ -154,48 +145,40 @@ async function loadGifFrames(url) {
 }
 
 async function initGif() {
-  // Load GIF frames
   await loadGifFrames(GIF_URL);
 
-  // Create a texture with the first frame
   gifTexture = new TR.Texture(gifFrames[0].bitmap);
   gifTexture.needsUpdate = true;
   gifTexture.colorSpace = TR.SRGBColorSpace;
 
-  // Create plane geometry to display the GIF
   const geometry = new TR.PlaneGeometry(2.5, 2.5);
   const material = new TR.MeshBasicMaterial({
     map: gifTexture,
     transparent: true,
   });
   gifPlane = new TR.Mesh(geometry, material);
-  gifPlane.position.set(0, 0.1, 0); // Adjust position as needed
-  gifPlane.rotation.x = -Math.PI / 2; // Face upward
+  gifPlane.position.set(0, 0.1, 0);
+  gifPlane.rotation.x = -Math.PI / 2;
   gifPlane.scale.y = -1;
 
   scene.add(gifPlane);
 }
-//await initGif();
 
-// Function to update the warrior frame
 function updateWarriorFrame(time) {
   if (time - lastWarriorFrameTime > warriorFrameSpeed) {
-    currentWarriorFrame = (currentWarriorFrame + 1) % warriorFrameCount; // Loop frames
+    currentWarriorFrame = (currentWarriorFrame + 1) % warriorFrameCount;
     const col = currentWarriorFrame % warriorFrames.cols;
     const row = Math.floor(currentWarriorFrame / warriorFrames.cols);
 
-    // Calculate texture offset based on the frame position
     warriorTexture.offset.x = col / warriorFrames.cols;
-    warriorTexture.offset.y = 1 - (row + 1) / warriorFrames.rows; // Adjust for Three.js Y-up coordinate system
+    warriorTexture.offset.y = 1 - (row + 1) / warriorFrames.rows;
     lastWarriorFrameTime = time;
   }
 }
 
-// Function to update the GIF frame
 function updateGifFrame(time) {
   if (time - lastGifFrameTime > gifFrames[currentGifFrame].delay) {
     currentGifFrame = (currentGifFrame + 1) % gifFrames.length;
-    //currentGifFrame = (currentGifFrame + 1) % 3;
     gifTexture.image = gifFrames[currentGifFrame].bitmap;
     gifTexture.needsUpdate = true;
     lastGifFrameTime = time;
@@ -204,19 +187,23 @@ function updateGifFrame(time) {
 
 function updateTreeFrame(time) {
   if (time - lastTreeFrameTime > treeFrameSpeed) {
-    currentTreeFrame = (currentTreeFrame + 1) % treeFrameCount; // Loop frames
+    currentTreeFrame = (currentTreeFrame + 1) % treeFrameCount;
     const col = currentTreeFrame % treeFrames.cols;
     const row = Math.floor(currentTreeFrame / treeFrames.cols);
 
-    // Calculate texture offset based on the frame position
     treeTexture.offset.x = col / treeFrames.cols;
     treeTexture.offset.y = 1 - (row + 1) / treeFrames.rows;
     lastTreeFrameTime = time;
   }
 }
 
-// Render loop
+let previousTime = performance.now();
+let holyElementalMixer = null;
+
 renderer.setAnimationLoop((time) => {
+  const deltaTime = (time - previousTime) * 0.001;
+  previousTime = time;
+
   if (warriorTile) {
     updateWarriorFrame(time);
   }
@@ -226,36 +213,45 @@ renderer.setAnimationLoop((time) => {
   if (gifPlane) {
     updateGifFrame(time);
   }
+  if (holyElementalMixer) {
+    holyElementalMixer.update(deltaTime);
+  }
+
   renderer.render(scene, camera);
 });
 
-// Load tilemap texture and create individual tiles
 async function createTileGrid() {
   const texture = await loadTilemapTexture(TILEMAP_URL);
   const tileTextures = createTileTextures(texture, 4, 10);
 
-  // Create a grid of tiles
   for (let x = 0; x < MAP_SIZE; x++) {
     for (let z = 0; z < MAP_SIZE; z++) {
       const tileGeometry = new TR.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 
-      // prettier-ignore
-      const tileIndex = (x === 0 && z === 0) ? tileTextures[0] :
-                  (x === MAP_SIZE - 1 && z === 0) ? tileTextures[2] :
-                  (x === 0 && z === MAP_SIZE - 1) ? tileTextures[20] :
-                  (x === MAP_SIZE - 1 && z === MAP_SIZE - 1) ? tileTextures[22] :
-                  (x === 0) ? tileTextures[10] :
-                  (x === MAP_SIZE - 1) ? tileTextures[12] :
-                  (z === 0) ? tileTextures[1] :
-                  (z === MAP_SIZE - 1) ? tileTextures[21] : 
-                  tileTextures[11];
+      const tileIndex =
+        x === 0 && z === 0
+          ? tileTextures[0]
+          : x === MAP_SIZE - 1 && z === 0
+          ? tileTextures[2]
+          : x === 0 && z === MAP_SIZE - 1
+          ? tileTextures[20]
+          : x === MAP_SIZE - 1 && z === MAP_SIZE - 1
+          ? tileTextures[22]
+          : x === 0
+          ? tileTextures[10]
+          : x === MAP_SIZE - 1
+          ? tileTextures[12]
+          : z === 0
+          ? tileTextures[1]
+          : z === MAP_SIZE - 1
+          ? tileTextures[21]
+          : tileTextures[11];
       const tileMaterial = new TR.MeshBasicMaterial({
         map: tileIndex,
         side: TR.DoubleSide,
       });
       const tile = new TR.Mesh(tileGeometry, tileMaterial);
 
-      // Position each tile and rotate to face upward
       tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0, z - MAP_SIZE / 2 + TILE_SIZE / 2);
       tile.rotation.x = -Math.PI / 2;
 
@@ -263,7 +259,6 @@ async function createTileGrid() {
     }
   }
 
-  // Add grid helper for a clean, elegant grid
   function createThickGrid(size, divisions, thickness, color, opacity = 0.3) {
     const material = new TR.MeshBasicMaterial({
       color,
@@ -272,19 +267,15 @@ async function createTileGrid() {
     });
     const halfSize = size / 2;
 
-    // Create a group to hold all grid lines
     const gridGroup = new TR.Group();
 
-    // Create vertical lines
     for (let i = 0; i <= divisions; i++) {
       const position = -halfSize + (i * size) / divisions;
 
-      // Vertical line geometry
       const verticalLine = new TR.Mesh(new TR.BoxGeometry(thickness, thickness, size), material);
       verticalLine.position.set(position, 0, 0);
       gridGroup.add(verticalLine);
 
-      // Horizontal line geometry
       const horizontalLine = new TR.Mesh(new TR.BoxGeometry(size, thickness, thickness), material);
       horizontalLine.position.set(0, 0, position);
       gridGroup.add(horizontalLine);
@@ -293,13 +284,11 @@ async function createTileGrid() {
     return gridGroup;
   }
 
-  // Usage
   const thickGrid = createThickGrid(MAP_SIZE, MAP_SIZE, 0.03, GRID_COLOR);
   thickGrid.rotation.y = Math.PI / 2;
   scene.add(thickGrid);
 }
 
-// Load the tilemap texture
 function loadTilemapTexture(url) {
   return new Promise((resolve) => {
     const loader = new TR.TextureLoader();
@@ -312,11 +301,9 @@ function loadTilemapTexture(url) {
   });
 }
 
-// Create tile textures from the tilemap
 function createTileTextures(texture, rows, cols) {
   const tileTextures = [];
 
-  // Create sub-textures from the main tilemap
   for (let row = rows - 1; row > -1; row--) {
     for (let col = 0; col < cols; col++) {
       const u = col / cols;
@@ -324,11 +311,10 @@ function createTileTextures(texture, rows, cols) {
       const uSize = 1 / cols;
       const vSize = 1 / rows;
 
-      // Clone the main texture and adjust UV mapping
       const tileTexture = texture.clone();
       tileTexture.repeat.set(uSize, vSize);
       tileTexture.offset.set(u, v);
-      tileTexture.colorSpace = TR.SRGBColorSpace; // Ensure colorSpace is set
+      tileTexture.colorSpace = TR.SRGBColorSpace;
       tileTexture.needsUpdate = true;
 
       tileTextures.push(tileTexture);
@@ -338,7 +324,6 @@ function createTileTextures(texture, rows, cols) {
   return tileTextures;
 }
 
-// Handle tile clicking
 function onClick(event) {
   mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(mouse, camera);
@@ -372,51 +357,30 @@ await createTree(0, 1);
 
 await loadHolyElemental();
 
-let previousTime = 0;
-
 async function loadHolyElemental() {
   const loader = new GLTFLoader();
   loader.load(
     '3d/SK_HolyElemental.glb',
     (gltf) => {
       const model = gltf.scene;
-
-      // Adjust model position and scale to fit the scene
       model.position.set(0, 1, 0);
       model.rotation.x = -Math.PI / 2;
       model.scale.set(2, 2, 2);
-
       scene.add(model);
 
-      // Load animations separately
-      const animLoader = new GLTFLoader(); // Or FBXLoader if your animation is in FBX format
-      animLoader.load('3d/A_HolyElemental_Idle.glb', (animGltf) => {
-        const mixer = new TR.AnimationMixer(model);
+      console.log('model.animations.length', gltf.animations.length);
 
-        if (animGltf.animations.length > 0) {
-          animGltf.animations.forEach((clip) => {
-            const action = mixer.clipAction(clip);
+      if (gltf.animations.length > 0) {
+        holyElementalMixer = new TR.AnimationMixer(model);
 
-            action.play();
-
-            // Set the playback speed
-            action.timeScale = 1; // 2x speed (increase for faster, decrease for slower)
-          });
-
-          // Add update logic for animation using delta time
-          function animate(time) {
-            const deltaTime = (time - previousTime) * 0.001; // Convert to seconds
-            mixer.update(deltaTime);
-            previousTime = time;
-
-            renderer.render(scene, camera);
-          }
-
-          renderer.setAnimationLoop(animate);
-        } else {
-          console.log('no animations found');
-        }
-      });
+        // Play the first animation only
+        const firstAnimation = gltf.animations[0];
+        const action = holyElementalMixer.clipAction(firstAnimation);
+        action.play();
+        action.timeScale = 1;
+      } else {
+        console.log('no animations found');
+      }
     },
     undefined,
     (error) => {
@@ -425,7 +389,6 @@ async function loadHolyElemental() {
   );
 }
 
-// Handle window resizing to maintain aspect ratio and fill screen
 window.addEventListener('resize', onWindowResize);
 
 function onWindowResize() {
