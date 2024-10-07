@@ -146,8 +146,7 @@ async function loadGifFrames(url) {
   for (const frame of frames) {
     const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
     const bitmap = await createImageBitmap(imageData);
-    //const delay = frame.delay * 2.5; // Convert from hundredths of a second to milliseconds
-    const delay = frame.delay; // Convert from hundredths of a second to milliseconds
+    const delay = frame.delay;
     gifFrames.push({ bitmap, delay });
   }
 }
@@ -174,7 +173,7 @@ async function initGif() {
 
   scene.add(gifPlane);
 }
-await initGif();
+//await initGif();
 
 // Function to update the warrior frame
 function updateWarriorFrame(time) {
