@@ -199,26 +199,6 @@ function updateTreeFrame(time) {
 
 let previousTime = performance.now();
 
-renderer.setAnimationLoop((time) => {
-  const deltaTime = (time - previousTime) * 0.001;
-  previousTime = time;
-
-  if (warriorTile) {
-    updateWarriorFrame(time);
-  }
-  if (treeTile) {
-    updateTreeFrame(time);
-  }
-  if (gifPlane) {
-    updateGifFrame(time);
-  }
-  if (holyElementalMixer) {
-    holyElementalMixer.update(deltaTime);
-  }
-
-  renderer.render(scene, camera);
-});
-
 async function createTileGrid() {
   const texture = await loadTilemapTexture(TILEMAP_URL);
   const tileTextures = createTileTextures(texture, 4, 10);
@@ -355,7 +335,7 @@ await createWarrior();
 await createTree(0, 1);
 
 // Holy Elemental model and animation variables
-let holyElementalMixer = null;
+let holyElementalMixer = undefined;
 let activeAction;
 const clock = new TR.Clock();
 const animations = {};
@@ -363,26 +343,40 @@ const animations = {};
 // Load and play the main Holy Elemental model
 async function loadHolyElemental() {
   const loader = new GLTFLoader();
-  loader.load('3d/SK_HolyElemental.glb', (gltf) => {
-    const model = gltf.scene;
-    model.position.set(0, 1, 0);
-    model.rotation.x = -Math.PI / 2;
-    model.scale.set(2, 2, 2);
-    scene.add(model);
 
-    holyElementalMixer = new TR.AnimationMixer(model);
-    // Load the idle animation by default
-    loadAnimation('3d/A_HolyElemental_Idle.glb', 'idle');
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      '3d/SK_HolyElemental.glb',
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
   });
+
+  const model = gltf.scene;
+  model.position.set(0, 1, 0);
+  model.rotation.x = -Math.PI / 2;
+  model.scale.set(2, 2, 2);
+  scene.add(model);
+
+  holyElementalMixer = new TR.AnimationMixer(model);
 }
 
 // Function to load and switch animations
-function loadAnimation(url, name) {
+async function loadElementalAnimation(url, name) {
   const loader = new GLTFLoader();
-  loader.load(url, (gltf) => {
-    const clip = gltf.animations[0];
-    animations[name] = holyElementalMixer.clipAction(clip);
+
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      url,
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
   });
+
+  const clip = gltf.animations[0];
+  animations[name] = holyElementalMixer.clipAction(clip);
 }
 
 // Play the selected animation
@@ -398,12 +392,17 @@ function playAnimation(name) {
 }
 
 // Load all the additional animations
-function loadAllAnimations() {
-  loadAnimation('3d/A_HolyElemental_Attack.glb', 'attack');
-  loadAnimation('3d/A_HolyElemental_Walk.glb', 'walk');
-  loadAnimation('3d/A_HolyElemental_Death.glb', 'death');
-  loadAnimation('3d/A_HolyElemental_Hit.glb', 'hit');
-  loadAnimation('3d/A_HolyElemental_Stun.glb', 'stun');
+async function loadAllAnimations() {
+  await loadElementalAnimation('3d/A_HolyElemental_Attack.glb', 'attack');
+  await loadElementalAnimation('3d/A_HolyElemental_Attack01.glb', 'attack01');
+  await loadElementalAnimation('3d/A_HolyElemental_Death.glb', 'death');
+  await loadElementalAnimation('3d/A_HolyElemental_Hit.glb', 'hit');
+  await loadElementalAnimation('3d/A_HolyElemental_Idle.glb', 'idle');
+  await loadElementalAnimation('3d/A_HolyElemental_Idle01.glb', 'idle01');
+  await loadElementalAnimation('3d/A_HolyElemental_Ready.glb', 'ready');
+  await loadElementalAnimation('3d/A_HolyElemental_Stun.glb', 'stun');
+  await loadElementalAnimation('3d/A_HolyElemental_Talk.glb', 'talk');
+  await loadElementalAnimation('3d/A_HolyElemental_Walk.glb', 'walk');
 }
 
 // Update function to handle animation updates
@@ -427,21 +426,37 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-animate();
-
 window.addEventListener('keydown', (event) => {
   switch (event.code) {
-    case 'KeyA':
+    case 'Digit1':
       playAnimation('attack');
       break;
-    case 'KeyI':
+    case 'Digit2':
+      playAnimation('attack01');
+      break;
+    case 'Digit3':
+      playAnimation('death');
+      break;
+    case 'Digit4':
+      playAnimation('hit');
+      break;
+    case 'Digit5':
       playAnimation('idle');
       break;
-    case 'KeyW':
-      playAnimation('walk');
+    case 'Digit6':
+      playAnimation('idle01');
       break;
-    case 'KeyH':
-      playAnimation('hit');
+    case 'Digit7':
+      playAnimation('ready');
+      break;
+    case 'Digit8':
+      playAnimation('stun');
+      break;
+    case 'Digit9':
+      playAnimation('talk');
+      break;
+    case 'Digit0':
+      playAnimation('walk');
       break;
     default:
       break;
@@ -449,7 +464,30 @@ window.addEventListener('keydown', (event) => {
 });
 
 await loadHolyElemental();
-loadAllAnimations();
+await loadAllAnimations();
+playAnimation('idle');
+
+//animate();
+
+renderer.setAnimationLoop((time) => {
+  const deltaTime = (time - previousTime) * 0.001;
+  previousTime = time;
+
+  if (warriorTile) {
+    updateWarriorFrame(time);
+  }
+  if (treeTile) {
+    updateTreeFrame(time);
+  }
+  if (gifPlane) {
+    updateGifFrame(time);
+  }
+  if (holyElementalMixer) {
+    holyElementalMixer.update(deltaTime);
+  }
+
+  renderer.render(scene, camera);
+});
 
 window.addEventListener('resize', onWindowResize);
 
