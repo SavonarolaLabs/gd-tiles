@@ -198,7 +198,6 @@ function updateTreeFrame(time) {
 }
 
 let previousTime = performance.now();
-let holyElementalMixer = null;
 
 renderer.setAnimationLoop((time) => {
   const deltaTime = (time - previousTime) * 0.001;
@@ -355,39 +354,102 @@ await createCastle(2, 4);
 await createWarrior();
 await createTree(0, 1);
 
-await loadHolyElemental();
+// Holy Elemental model and animation variables
+let holyElementalMixer = null;
+let activeAction;
+const clock = new TR.Clock();
+const animations = {};
 
+// Load and play the main Holy Elemental model
 async function loadHolyElemental() {
   const loader = new GLTFLoader();
-  loader.load(
-    '3d/SK_HolyElemental.glb',
-    (gltf) => {
-      const model = gltf.scene;
-      model.position.set(0, 1, 0);
-      model.rotation.x = -Math.PI / 2;
-      model.scale.set(2, 2, 2);
-      scene.add(model);
+  loader.load('3d/SK_HolyElemental.glb', (gltf) => {
+    const model = gltf.scene;
+    model.position.set(0, 1, 0);
+    model.rotation.x = -Math.PI / 2;
+    model.scale.set(2, 2, 2);
+    scene.add(model);
 
-      console.log('model.animations.length', gltf.animations.length);
-
-      if (gltf.animations.length > 0) {
-        holyElementalMixer = new TR.AnimationMixer(model);
-
-        // Play the first animation only
-        const firstAnimation = gltf.animations[0];
-        const action = holyElementalMixer.clipAction(firstAnimation);
-        action.play();
-        action.timeScale = 1;
-      } else {
-        console.log('no animations found');
-      }
-    },
-    undefined,
-    (error) => {
-      console.error('Error loading GLB model:', error);
-    }
-  );
+    holyElementalMixer = new TR.AnimationMixer(model);
+    // Load the idle animation by default
+    loadAnimation('3d/A_HolyElemental_Idle.glb', 'idle');
+  });
 }
+
+// Function to load and switch animations
+function loadAnimation(url, name) {
+  const loader = new GLTFLoader();
+  loader.load(url, (gltf) => {
+    const clip = gltf.animations[0];
+    animations[name] = holyElementalMixer.clipAction(clip);
+  });
+}
+
+// Play the selected animation
+function playAnimation(name) {
+  if (activeAction) {
+    activeAction.fadeOut(0.5);
+  }
+
+  activeAction = animations[name];
+  activeAction.reset();
+  activeAction.fadeIn(0.5);
+  activeAction.play();
+}
+
+// Load all the additional animations
+function loadAllAnimations() {
+  loadAnimation('3d/A_HolyElemental_Attack.glb', 'attack');
+  loadAnimation('3d/A_HolyElemental_Walk.glb', 'walk');
+  loadAnimation('3d/A_HolyElemental_Death.glb', 'death');
+  loadAnimation('3d/A_HolyElemental_Hit.glb', 'hit');
+  loadAnimation('3d/A_HolyElemental_Stun.glb', 'stun');
+}
+
+// Update function to handle animation updates
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+  if (holyElementalMixer) {
+    holyElementalMixer.update(delta);
+  }
+  if (warriorTile) {
+    updateWarriorFrame(performance.now());
+  }
+  if (treeTile) {
+    updateTreeFrame(performance.now());
+  }
+  if (gifPlane) {
+    updateGifFrame(performance.now());
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('keydown', (event) => {
+  switch (event.code) {
+    case 'KeyA':
+      playAnimation('attack');
+      break;
+    case 'KeyI':
+      playAnimation('idle');
+      break;
+    case 'KeyW':
+      playAnimation('walk');
+      break;
+    case 'KeyH':
+      playAnimation('hit');
+      break;
+    default:
+      break;
+  }
+});
+
+await loadHolyElemental();
+loadAllAnimations();
 
 window.addEventListener('resize', onWindowResize);
 
