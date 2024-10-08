@@ -1,7 +1,6 @@
 import * as TR from 'three';
 import { parseGIF, decompressFrames } from 'gifuct-js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 // Constants
 const MAP_SIZE = 16;
@@ -338,7 +337,7 @@ await createTree(0, 1);
 let holyElementalMixer = undefined;
 let activeAction;
 const clock = new TR.Clock();
-const animations = {};
+let elementalModel = null;
 
 // Load and play the main Holy Elemental model
 async function loadHolyElemental() {
@@ -346,7 +345,7 @@ async function loadHolyElemental() {
 
   const gltf = await new Promise((resolve, reject) => {
     loader.load(
-      '3d/SK_HolyElemental.glb',
+      '3d/HolyElemental/SK_HolyElemental.glb',
       (gltf) => resolve(gltf),
       undefined,
       (error) => reject(error)
@@ -357,12 +356,14 @@ async function loadHolyElemental() {
   model.position.set(0, 1, 0);
   model.rotation.x = -Math.PI / 2;
   model.scale.set(2, 2, 2);
+  elementalModel = model;
   scene.add(model);
 
   holyElementalMixer = new TR.AnimationMixer(model);
 }
 
 // Function to load and switch animations
+let animations = [];
 async function loadElementalAnimation(url, name) {
   const loader = new GLTFLoader();
 
@@ -393,16 +394,16 @@ function playAnimation(name) {
 
 // Load all the additional animations
 async function loadAllAnimations() {
-  await loadElementalAnimation('3d/A_HolyElemental_Attack.glb', 'attack');
-  await loadElementalAnimation('3d/A_HolyElemental_Attack01.glb', 'attack01');
-  await loadElementalAnimation('3d/A_HolyElemental_Death.glb', 'death');
-  await loadElementalAnimation('3d/A_HolyElemental_Hit.glb', 'hit');
-  await loadElementalAnimation('3d/A_HolyElemental_Idle.glb', 'idle');
-  await loadElementalAnimation('3d/A_HolyElemental_Idle01.glb', 'idle01');
-  await loadElementalAnimation('3d/A_HolyElemental_Ready.glb', 'ready');
-  await loadElementalAnimation('3d/A_HolyElemental_Stun.glb', 'stun');
-  await loadElementalAnimation('3d/A_HolyElemental_Talk.glb', 'talk');
-  await loadElementalAnimation('3d/A_HolyElemental_Walk.glb', 'walk');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Attack.glb', 'attack');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Attack01.glb', 'attack01');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Death.glb', 'death');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Hit.glb', 'hit');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Idle.glb', 'idle');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Idle01.glb', 'idle01');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Ready.glb', 'ready');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Stun.glb', 'stun');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Talk.glb', 'talk');
+  await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Walk.glb', 'walk');
 }
 
 // Update function to handle animation updates
@@ -458,10 +459,35 @@ window.addEventListener('keydown', (event) => {
     case 'Digit0':
       playAnimation('walk');
       break;
+    case 'KeyW':
+      rotateTop();
+      break;
+    case 'KeyS':
+      rotateBot();
+      break;
+    case 'KeyA':
+      rotateLeft();
+      break;
+    case 'KeyD':
+      rotateRight();
+      break;
     default:
       break;
   }
 });
+
+function rotateTop() {
+  elementalModel.rotation.x = elementalModel.rotation.x - 0.2;
+}
+function rotateBot() {
+  elementalModel.rotation.x = elementalModel.rotation.x + 0.2;
+}
+function rotateLeft() {
+  elementalModel.rotation.y = elementalModel.rotation.y - 0.2;
+}
+function rotateRight() {
+  elementalModel.rotation.y = elementalModel.rotation.y + 0.2;
+}
 
 await loadHolyElemental();
 await loadAllAnimations();
