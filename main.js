@@ -1,6 +1,11 @@
 import * as TR from 'three';
 import { parseGIF, decompressFrames } from 'gifuct-js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js';
 
 // Constants
 const MAP_SIZE = 16;
@@ -35,6 +40,24 @@ if (aspectRatio >= 1) {
 
 camera.position.set(0, MAP_SIZE, 0);
 camera.lookAt(0, 0, 0);
+
+// white outline START
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const outlinePass = new OutlinePass(new TR.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+outlinePass.edgeStrength = 2.5; // Thickness of the outline
+outlinePass.edgeGlow = 0.0; // Glow amount (set this to 0 for now)
+outlinePass.edgeThickness = 1.0; // Adjust thickness for a more prominent outline
+outlinePass.pulsePeriod = 0; // No pulsing effect
+outlinePass.visibleEdgeColor.set('#ffffff'); // Visible outline color (white)
+outlinePass.hiddenEdgeColor.set('#ff0000'); // Black hidden edge color
+composer.addPass(outlinePass);
+
+const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
+composer.addPass(gammaCorrectionPass);
+// white outline END
 
 // Raycaster and mouse setup
 const raycaster = new TR.Raycaster();
@@ -491,7 +514,26 @@ function rotateRight() {
 
 await loadHolyElemental();
 await loadAllAnimations();
+outlinePass.selectedObjects.push(elementalModel);
 playAnimation('idle');
+
+function createAnotherHolyElemental(position) {
+  // Clone the model
+  const clonedModel = elementalModel.clone();
+
+  // Set the position for the cloned model
+  clonedModel.position.copy(position);
+  scene.add(clonedModel);
+
+  // Create a new AnimationMixer for the cloned model
+  const clonedMixer = new TR.AnimationMixer(clonedModel);
+
+  // Play the same animation on the clone
+  const clip = clonedMixer.existingAction(holyElementalMixer._actions[0]._clip);
+  if (clip) clip.play();
+
+  return clonedMixer;
+}
 
 //animate();
 
@@ -513,6 +555,8 @@ renderer.setAnimationLoop((time) => {
   }
 
   renderer.render(scene, camera);
+  // disable white outline
+  //composer.render();
 });
 
 window.addEventListener('resize', onWindowResize);
@@ -534,4 +578,5 @@ function onWindowResize() {
 
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 }
