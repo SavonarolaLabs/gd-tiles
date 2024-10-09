@@ -654,9 +654,8 @@ function createPerspectiveCamera() {
     1000 // Far plane
   );
 
-  camera.position.set(-24, 24, 36); // Lower and closer to the scene
-
-  camera.lookAt(0, 4, 8); // Center on the battlefield
+  camera.position.set(-16, 20, 30); // Place the camera inside the skybox
+  camera.lookAt(0, 0, 0); // Center on the battlefield
 
   return camera;
 }
@@ -732,7 +731,7 @@ async function loadSkybox() {
 
   const gltf = await new Promise((resolve, reject) => {
     loader.load(
-      '3d/skybox/ruins.glb', // Skybox asset path
+      '3d/skybox/forgotten_ruins.glb', // Skybox asset path
       (gltf) => resolve(gltf),
       undefined,
       (error) => reject(error)
@@ -743,20 +742,18 @@ async function loadSkybox() {
   skybox.traverse((child) => {
     if (child instanceof TR.Mesh) {
       child.material.depthWrite = false; // Skyboxes are rendered last
+      child.material.side = TR.BackSide; // Render inside faces
       child.receiveShadow = false; // Skyboxes generally don't receive shadows
       child.castShadow = false; // Skyboxes generally don't cast shadows
+      child.material.side = TR.BackSide;
     }
   });
-  // Do not overwrite materials
-  // skybox.traverse((child) => {
-  //   if (child instanceof TR.Mesh) {
-  //     child.material = new TR.MeshStandardMaterial({ color: 0xffffff });
-  //   }
-  // });
 
   // Adjust the position and scale to ensure the camera is inside the skybox
   skybox.scale.set(100, 100, 100); // Large enough to surround the scene
-  skybox.position.set(0, 0, 0); // Set the skybox at the origin, covering the entire scene
+  skybox.position.set(0, 0, 0); // Center the skybox
+  skybox.frustumCulled = false; // Prevent culling
+  skybox.renderOrder = -1; // Render first
   console.log({ skybox });
   scene['battlefield'].add(skybox);
 }
@@ -764,7 +761,7 @@ async function loadSkybox() {
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
-  await loadSkybox();
+  await loadSkybox(); // Load the skybox
 }
 
 initBattlefield(); // Call the async function
