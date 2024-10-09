@@ -654,7 +654,8 @@ function createPerspectiveCamera() {
     1000 // Far plane
   );
 
-  camera.position.set(-24, 24, 36); // Lower and closer to the scene
+  //camera.position.set(-24, 24, 36); // Lower and closer to the scene
+  camera.position.set(-24 * 1, 24 * 1, 36 * 1); // Lower and closer to the scene
 
   camera.lookAt(0, 4, 8); // Center on the battlefield
 
@@ -696,7 +697,7 @@ async function loadArena() {
     loader.load(
       //      '3d/arena/hell_arena.glb',
       //'3d/arena/older_castle_ruins.glb',
-      '3d/arena/ruins.glb',
+      '3d/arena/dwarf_modelkit.glb',
       //'3d/arena/battlefield.glb',
       (gltf) => resolve(gltf),
       undefined,
@@ -718,9 +719,15 @@ async function loadArena() {
   //const scale = 0.02;
 
   //'3d/arena/ruins.glb'
-  const scale = 15;
-  model.position.y = 5.5;
-  model.position.x = +8;
+  // const scale = 0.1;
+  // model.position.y = 5.5;
+  // model.position.x = +8;
+  // model.rotation.y = -Math.PI / 2;
+
+  const scale = 1;
+  model.position.y = 0.5;
+  model.position.x = +160;
+  model.position.z = -10;
   model.rotation.y = -Math.PI / 2;
 
   model.scale.set(scale, scale, scale);
@@ -758,13 +765,24 @@ async function loadSkybox() {
   skybox.scale.set(100, 100, 100); // Large enough to surround the scene
   skybox.position.set(0, 0, 0); // Set the skybox at the origin, covering the entire scene
   console.log({ skybox });
+  //scene['battlefield'].add(skybox);
+}
+
+function simpleSkybox() {
+  const geometry = new TR.BoxGeometry(100, 100, 100);
+  const material = new TR.MeshBasicMaterial({
+    color: 0xffffff,
+    side: TR.BackSide,
+  });
+  const skybox = new TR.Mesh(geometry, material);
   scene['battlefield'].add(skybox);
 }
 
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
-  await loadSkybox();
+  //await loadSkybox();
+  //simpleSkybox();
 }
 
 initBattlefield(); // Call the async function
