@@ -598,7 +598,7 @@ function createBattleField() {
   groundMesh.rotation.x = -Math.PI / 2;
   groundMesh.receiveShadow = true;
 
-  scene['battlefield'].add(groundMesh);
+  //scene['battlefield'].add(groundMesh);
   let c = [];
   for (let i = 0; i < 12; i++) {
     c[i] = clone(elementalModel);
@@ -680,4 +680,47 @@ function createIsometricCamera() {
   return camera;
 }
 
-createBattleField();
+async function loadArena() {
+  const loader = new GLTFLoader();
+
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      //      '3d/arena/hell_arena.glb',
+      //'3d/arena/older_castle_ruins.glb',
+      '3d/arena/ruins.glb',
+      //'3d/arena/battlefield.glb',
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
+  });
+
+  const model = gltf.scene;
+  model.traverse((child) => {
+    if (child instanceof TR.Mesh) {
+      //child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  //model.position.set(-4, 0, -14);
+  //model.rotation.x = -Math.PI / 2;
+
+  //'3d/arena/older_castle_ruins.glb',
+  //const scale = 0.02;
+
+  //'3d/arena/ruins.glb'
+  const scale = 15;
+  model.position.y = 5.5;
+  model.position.x = +8;
+  model.rotation.y = -Math.PI / 2;
+
+  model.scale.set(scale, scale, scale);
+  scene['battlefield'].add(model);
+}
+
+async function initBattlefield() {
+  createBattleField(); // Initialize the battlefield
+  await loadArena(); // Wait for the arena to load
+}
+
+initBattlefield(); // Call the async function
