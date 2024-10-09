@@ -662,34 +662,6 @@ function createPerspectiveCamera() {
   return camera;
 }
 
-function createIsometricCamera() {
-  const aspectRatio = window.innerWidth / window.innerHeight;
-  const viewSize = 12; // Adjust to fit your scene size
-
-  // Create an orthographic camera for isometric view
-  const camera = new TR.OrthographicCamera(
-    -viewSize * aspectRatio, // left
-    viewSize * aspectRatio, // right
-    viewSize, // top
-    -viewSize, // bottom
-    0.1, // near
-    1000 // far
-  );
-
-  // Position the camera for isometric view
-  camera.position.set(-16, 20, 30); // Adjust these values for a 3D isometric effect
-  //camera.lookAt(10, 0, 10); // Focus the camera on the center of the battlefield
-
-  // Rotate the camera to achieve isometric projection
-  camera.rotation.order = 'YXZ'; // Set rotation order
-  camera.rotation.y = Math.PI / 4; // Rotate 45 degrees around the Y-axis
-  camera.rotation.x = Math.atan(Math.sqrt(2)); // Tilt down for the isometric effect
-  camera.lookAt(0, 3, 2);
-
-  camera['battlefield'] = camera;
-  return camera;
-}
-
 async function loadArena() {
   const loader = new GLTFLoader();
 
@@ -732,50 +704,6 @@ async function loadArena() {
 
   model.scale.set(scale, scale, scale);
   scene['battlefield'].add(model);
-}
-
-async function loadSkybox() {
-  const loader = new GLTFLoader();
-
-  const gltf = await new Promise((resolve, reject) => {
-    loader.load(
-      '3d/skybox/ruins.glb', // Skybox asset path
-      (gltf) => resolve(gltf),
-      undefined,
-      (error) => reject(error)
-    );
-  });
-
-  const skybox = gltf.scene;
-  skybox.traverse((child) => {
-    if (child instanceof TR.Mesh) {
-      child.material.depthWrite = false; // Skyboxes are rendered last
-      child.receiveShadow = false; // Skyboxes generally don't receive shadows
-      child.castShadow = false; // Skyboxes generally don't cast shadows
-    }
-  });
-  // Do not overwrite materials
-  // skybox.traverse((child) => {
-  //   if (child instanceof TR.Mesh) {
-  //     child.material = new TR.MeshStandardMaterial({ color: 0xffffff });
-  //   }
-  // });
-
-  // Adjust the position and scale to ensure the camera is inside the skybox
-  skybox.scale.set(100, 100, 100); // Large enough to surround the scene
-  skybox.position.set(0, 0, 0); // Set the skybox at the origin, covering the entire scene
-  console.log({ skybox });
-  //scene['battlefield'].add(skybox);
-}
-
-function simpleSkybox() {
-  const geometry = new TR.BoxGeometry(100, 100, 100);
-  const material = new TR.MeshBasicMaterial({
-    color: 0xffffff,
-    side: TR.BackSide,
-  });
-  const skybox = new TR.Mesh(geometry, material);
-  scene['battlefield'].add(skybox);
 }
 
 async function initBattlefield() {
