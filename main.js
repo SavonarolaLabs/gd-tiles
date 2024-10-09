@@ -6,6 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js';
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Constants
 const MAP_SIZE = 16;
@@ -19,34 +20,38 @@ const TREE_URL = 'assets/Tiny Swords/Resources/Trees/Tree.png';
 const TREE_SCALE = 1.3;
 const GRID_COLOR = 0x888888;
 
-// Scene, Renderer, and Camera setup
-const scene = new TR.Scene();
+//let currentScene = 'map';
+let currentScene = 'battlefield';
+const scene = { map: new TR.Scene() };
 const renderer = new TR.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = TR.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = TR.PCFSoftShadowMap;
+
 document.body.appendChild(renderer.domElement);
 
-// Calculate aspect ratio and adjust camera size
+// Calculate aspect ratio and adjust camera['map'] size
 const aspectRatio = window.innerWidth / window.innerHeight;
 const viewSize = MAP_SIZE / 2;
 
-let camera;
+let camera = {};
 if (aspectRatio >= 1) {
-  camera = new TR.OrthographicCamera(-viewSize * aspectRatio, viewSize * aspectRatio, viewSize, -viewSize, 0.1, MAP_SIZE * 2);
+  camera['map'] = new TR.OrthographicCamera(-viewSize * aspectRatio, viewSize * aspectRatio, viewSize, -viewSize, 0.1, MAP_SIZE * 2);
 } else {
-  camera = new TR.OrthographicCamera(-viewSize, viewSize, viewSize / aspectRatio, -viewSize / aspectRatio, 0.1, MAP_SIZE * 2);
+  camera['map'] = new TR.OrthographicCamera(-viewSize, viewSize, viewSize / aspectRatio, -viewSize / aspectRatio, 0.1, MAP_SIZE * 2);
 }
 
-camera.position.set(0, MAP_SIZE, 0);
-camera.lookAt(0, 0, 0);
+camera['map'].position.set(0, MAP_SIZE, 0);
+camera['map'].lookAt(0, 0, 0);
 
 // white outline START
 const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
+const renderPass = new RenderPass(scene['map'], camera['map']);
 composer.addPass(renderPass);
 
-const outlinePass = new OutlinePass(new TR.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+const outlinePass = new OutlinePass(new TR.Vector2(window.innerWidth, window.innerHeight), scene['map'], camera['map']);
 outlinePass.edgeStrength = 2.5; // Thickness of the outline
 outlinePass.edgeGlow = 0.0; // Glow amount (set this to 0 for now)
 outlinePass.edgeThickness = 1.0; // Adjust thickness for a more prominent outline
@@ -99,7 +104,7 @@ async function createTree(x, y) {
   treeTile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2 - TILE_SIZE * TREE_SCALE * 0.1);
   treeTile.rotation.x = -Math.PI / 2;
 
-  scene.add(treeTile);
+  scene['map'].add(treeTile);
 }
 
 async function createWarrior() {
@@ -120,7 +125,7 @@ async function createWarrior() {
   setWarriorPosition(1, 1);
   warriorTile.rotation.x = -Math.PI / 2;
 
-  scene.add(warriorTile);
+  scene['map'].add(warriorTile);
 }
 
 function setWarriorPosition(x, y) {
@@ -142,7 +147,7 @@ async function createCastle(x, y) {
   tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0.1, y - MAP_SIZE / 2 + TILE_SIZE / 2);
   tile.rotation.x = -Math.PI / 2;
 
-  scene.add(tile);
+  scene['map'].add(tile);
 }
 
 const GIF_URL = 'assets/gif/castingBig.gif';
@@ -183,7 +188,7 @@ async function initGif() {
   gifPlane.rotation.x = -Math.PI / 2;
   gifPlane.scale.y = -1;
 
-  scene.add(gifPlane);
+  scene['map'].add(gifPlane);
 }
 
 function updateWarriorFrame(time) {
@@ -256,7 +261,7 @@ async function createTileGrid() {
       tile.position.set(x - MAP_SIZE / 2 + TILE_SIZE / 2, 0, z - MAP_SIZE / 2 + TILE_SIZE / 2);
       tile.rotation.x = -Math.PI / 2;
 
-      scene.add(tile);
+      scene['map'].add(tile);
     }
   }
 
@@ -287,7 +292,7 @@ async function createTileGrid() {
 
   const thickGrid = createThickGrid(MAP_SIZE, MAP_SIZE, 0.03, GRID_COLOR);
   thickGrid.rotation.y = Math.PI / 2;
-  scene.add(thickGrid);
+  scene['map'].add(thickGrid);
 }
 
 function loadTilemapTexture(url) {
@@ -327,9 +332,9 @@ function createTileTextures(texture, rows, cols) {
 
 function onClick(event) {
   mouse.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
-  raycaster.setFromCamera(mouse, camera);
+  raycaster.setFromCamera(mouse, camera['map']);
 
-  const intersects = raycaster.intersectObjects(scene.children);
+  const intersects = raycaster.intersectObjects(scene['map'].children);
   if (intersects.length) {
     const { point } = intersects[0];
     const x = Math.floor(point.x + MAP_SIZE / 2);
@@ -344,11 +349,11 @@ window.addEventListener('click', onClick);
 //lights
 
 const ambientLight = new TR.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
+scene['map'].add(ambientLight);
 
 const directionalLight = new TR.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(10, 20, 10);
-scene.add(directionalLight);
+scene['map'].add(directionalLight);
 
 // Create the tile grid and entities
 await createTileGrid();
@@ -380,7 +385,7 @@ async function loadHolyElemental() {
   model.rotation.x = -Math.PI / 2;
   model.scale.set(2, 2, 2);
   elementalModel = model;
-  scene.add(model);
+  scene['map'].add(model);
 
   holyElementalMixer = new TR.AnimationMixer(model);
 }
@@ -429,27 +434,6 @@ async function loadAllAnimations() {
   await loadElementalAnimation('3d/HolyElemental/A_HolyElemental_Walk.glb', 'walk');
 }
 
-// Update function to handle animation updates
-function animate() {
-  requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-  if (holyElementalMixer) {
-    holyElementalMixer.update(delta);
-  }
-  if (warriorTile) {
-    updateWarriorFrame(performance.now());
-  }
-  if (treeTile) {
-    updateTreeFrame(performance.now());
-  }
-  if (gifPlane) {
-    updateGifFrame(performance.now());
-  }
-
-  renderer.render(scene, camera);
-}
-
 window.addEventListener('keydown', (event) => {
   switch (event.code) {
     case 'Digit1':
@@ -494,6 +478,12 @@ window.addEventListener('keydown', (event) => {
     case 'KeyD':
       rotateRight();
       break;
+    case 'KeyO':
+      currentScene = 'map';
+      break;
+    case 'KeyP':
+      currentScene = 'battlefield';
+      break;
     default:
       break;
   }
@@ -523,7 +513,7 @@ function createAnotherHolyElemental(position) {
 
   // Set the position for the cloned model
   clonedModel.position.copy(position);
-  scene.add(clonedModel);
+  scene['map'].add(clonedModel);
 
   // Create a new AnimationMixer for the cloned model
   const clonedMixer = new TR.AnimationMixer(clonedModel);
@@ -554,7 +544,7 @@ renderer.setAnimationLoop((time) => {
     holyElementalMixer.update(deltaTime);
   }
 
-  renderer.render(scene, camera);
+  renderer.render(scene[currentScene], camera[currentScene]);
   // disable white outline
   //composer.render();
 });
@@ -565,18 +555,115 @@ function onWindowResize() {
   const newAspectRatio = window.innerWidth / window.innerHeight;
 
   if (newAspectRatio >= 1) {
-    camera.left = -viewSize * newAspectRatio;
-    camera.right = viewSize * newAspectRatio;
-    camera.top = viewSize;
-    camera.bottom = -viewSize;
+    camera['map'].left = -viewSize * newAspectRatio;
+    camera['map'].right = viewSize * newAspectRatio;
+    camera['map'].top = viewSize;
+    camera['map'].bottom = -viewSize;
   } else {
-    camera.left = -viewSize;
-    camera.right = viewSize;
-    camera.top = viewSize / newAspectRatio;
-    camera.bottom = -viewSize / newAspectRatio;
+    camera['map'].left = -viewSize;
+    camera['map'].right = viewSize;
+    camera['map'].top = viewSize / newAspectRatio;
+    camera['map'].bottom = -viewSize / newAspectRatio;
   }
 
-  camera.updateProjectionMatrix();
+  camera['map'].updateProjectionMatrix();
+
+  // Update battlefield camera (assuming it's a perspective camera)
+  if (camera['battlefield']) {
+    camera['battlefield'].aspect = newAspectRatio; // Update aspect ratio
+    camera['battlefield'].updateProjectionMatrix(); // Update projection matrix
+  }
+  // Update battlefield camera (assuming it's a perspective camera)
+  if (camera['battlefield']) {
+    camera['battlefield'].aspect = newAspectRatio; // Update aspect ratio
+    camera['battlefield'].updateProjectionMatrix(); // Update projection matrix
+  }
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
 }
+
+function createBattleField() {
+  scene['battlefield'] = new TR.Scene();
+  const FIELD_SIZE = 16;
+
+  const planeGeometry = new TR.PlaneGeometry(FIELD_SIZE * 1.8, FIELD_SIZE * 2.5);
+  const groundMaterial = new TR.MeshPhongMaterial({ color: 0x333333 }); // Changed material to Phong
+  const groundMesh = new TR.Mesh(planeGeometry, groundMaterial);
+  groundMesh.rotation.x = -Math.PI / 2;
+  groundMesh.receiveShadow = true;
+
+  scene['battlefield'].add(groundMesh);
+  let c = [];
+  for (let i = 0; i < 12; i++) {
+    c[i] = clone(elementalModel);
+    c[i].traverse((child) => {
+      if (child instanceof TR.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    if (i < 6) {
+      c[i].position.z = i > 2 ? -1 : -7;
+    } else {
+      c[i].position.z = i < 9 ? 7.5 : 7.5 + 6;
+      c[i].rotation.y = Math.PI;
+    }
+    c[i].position.x = 5.5 * ((i % 3) - 1);
+    c[i].rotation.x = 0;
+    scene['battlefield'].add(c[i]);
+  }
+
+  // Lighting
+  const ambientLight = new TR.AmbientLight(0x404040, 2); // Soft ambient light
+  scene['battlefield'].add(ambientLight);
+
+  const directionalLight = new TR.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(10, 20, 10); // Adjust light position for better shadows
+  directionalLight.castShadow = true; // Enable shadow casting
+  directionalLight.shadow.mapSize.width = 2048; // Increase shadow resolution for sharper shadows
+  directionalLight.shadow.mapSize.height = 2048;
+  directionalLight.shadow.camera.near = 0.5;
+  directionalLight.shadow.camera.far = 50;
+  directionalLight.shadow.camera.left = -FIELD_SIZE;
+  directionalLight.shadow.camera.right = FIELD_SIZE;
+  directionalLight.shadow.camera.top = FIELD_SIZE;
+  directionalLight.shadow.camera.bottom = -FIELD_SIZE;
+  scene['battlefield'].add(directionalLight);
+
+  // Camera
+  const aspect = window.innerWidth > window.innerHeight ? window.innerWidth / window.innerHeight : window.innerHeight / window.innerWidth;
+
+  //camera['battlefield'] = new TR.PerspectiveCamera(45, aspect, 0.1, 1000);
+  camera['battlefield'] = createIsometricCamera();
+}
+
+function createIsometricCamera() {
+  const aspectRatio = window.innerWidth / window.innerHeight;
+  const viewSize = 12; // Adjust to fit your scene size
+
+  // Create an orthographic camera for isometric view
+  const camera = new TR.OrthographicCamera(
+    -viewSize * aspectRatio, // left
+    viewSize * aspectRatio, // right
+    viewSize, // top
+    -viewSize, // bottom
+    0.1, // near
+    1000 // far
+  );
+
+  // Position the camera for isometric view
+  camera.position.set(-15, 20, 20); // Adjust these values for a 3D isometric effect
+  //camera.lookAt(10, 0, 10); // Focus the camera on the center of the battlefield
+
+  // Rotate the camera to achieve isometric projection
+  camera.rotation.order = 'YXZ'; // Set rotation order
+  camera.rotation.y = Math.PI / 4; // Rotate 45 degrees around the Y-axis
+  camera.rotation.x = Math.atan(Math.sqrt(2)); // Tilt down for the isometric effect
+  camera.lookAt(0, 3, 2);
+
+  camera['battlefield'] = camera;
+  return camera;
+}
+
+createBattleField();
