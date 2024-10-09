@@ -579,11 +579,6 @@ function onWindowResize() {
     camera['battlefield'].aspect = newAspectRatio; // Update aspect ratio
     camera['battlefield'].updateProjectionMatrix(); // Update projection matrix
   }
-  // Update battlefield camera (assuming it's a perspective camera)
-  if (camera['battlefield']) {
-    camera['battlefield'].aspect = newAspectRatio; // Update aspect ratio
-    camera['battlefield'].updateProjectionMatrix(); // Update projection matrix
-  }
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -610,12 +605,12 @@ function createBattleField() {
     });
 
     if (i < 6) {
-      c[i].position.z = i > 2 ? -1 : -7;
+      c[i].position.z = i > 2 ? -3 : -(3 + 6);
     } else {
-      c[i].position.z = i < 9 ? 7.5 : 7.5 + 6;
+      c[i].position.z = i < 9 ? 8 : 8 + 6;
       c[i].rotation.y = Math.PI;
     }
-    c[i].position.x = 5.5 * ((i % 3) - 1);
+    c[i].position.x = 7 * ((i % 3) - 1);
     c[i].rotation.x = 0;
     scene['battlefield'].add(c[i]);
 
@@ -645,11 +640,25 @@ function createBattleField() {
   directionalLight.shadow.camera.bottom = -FIELD_SIZE;
   scene['battlefield'].add(directionalLight);
 
-  // Camera
-  const aspect = window.innerWidth > window.innerHeight ? window.innerWidth / window.innerHeight : window.innerHeight / window.innerWidth;
+  camera['battlefield'] = createPerspectiveCamera();
+  //camera['battlefield'] = createIsometricCamera();
+}
 
-  //camera['battlefield'] = new TR.PerspectiveCamera(45, aspect, 0.1, 1000);
-  camera['battlefield'] = createIsometricCamera();
+function createPerspectiveCamera() {
+  const aspectRatio = window.innerWidth / window.innerHeight;
+
+  const camera = new TR.PerspectiveCamera(
+    35, // Field of View (FOV)
+    aspectRatio, // Aspect ratio
+    0.1, // Near plane
+    1000 // Far plane
+  );
+
+  camera.position.set(-24, 24, 36); // Lower and closer to the scene
+
+  camera.lookAt(0, 4, 8); // Center on the battlefield
+
+  return camera;
 }
 
 function createIsometricCamera() {
@@ -667,7 +676,7 @@ function createIsometricCamera() {
   );
 
   // Position the camera for isometric view
-  camera.position.set(-15, 20, 20); // Adjust these values for a 3D isometric effect
+  camera.position.set(-16, 20, 30); // Adjust these values for a 3D isometric effect
   //camera.lookAt(10, 0, 10); // Focus the camera on the center of the battlefield
 
   // Rotate the camera to achieve isometric projection
@@ -718,9 +727,44 @@ async function loadArena() {
   scene['battlefield'].add(model);
 }
 
+async function loadSkybox() {
+  const loader = new GLTFLoader();
+
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      '3d/skybox/ruins.glb', // Skybox asset path
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
+  });
+
+  const skybox = gltf.scene;
+  skybox.traverse((child) => {
+    if (child instanceof TR.Mesh) {
+      child.material.depthWrite = false; // Skyboxes are rendered last
+      child.receiveShadow = false; // Skyboxes generally don't receive shadows
+      child.castShadow = false; // Skyboxes generally don't cast shadows
+    }
+  });
+  // Do not overwrite materials
+  // skybox.traverse((child) => {
+  //   if (child instanceof TR.Mesh) {
+  //     child.material = new TR.MeshStandardMaterial({ color: 0xffffff });
+  //   }
+  // });
+
+  // Adjust the position and scale to ensure the camera is inside the skybox
+  skybox.scale.set(100, 100, 100); // Large enough to surround the scene
+  skybox.position.set(0, 0, 0); // Set the skybox at the origin, covering the entire scene
+  console.log({ skybox });
+  scene['battlefield'].add(skybox);
+}
+
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
+  await loadSkybox();
 }
 
 initBattlefield(); // Call the async function
