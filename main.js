@@ -544,12 +544,18 @@ renderer.setAnimationLoop((time) => {
     holyElementalMixer.update(deltaTime);
   }
 
+  mixers.forEach((mixer) => {
+    mixer.update(deltaTime);
+  });
+
   renderer.render(scene[currentScene], camera[currentScene]);
   // disable white outline
   //composer.render();
 });
 
 window.addEventListener('resize', onWindowResize);
+
+let mixers = [];
 
 function onWindowResize() {
   const newAspectRatio = window.innerWidth / window.innerHeight;
@@ -612,6 +618,14 @@ function createBattleField() {
     c[i].position.x = 5.5 * ((i % 3) - 1);
     c[i].rotation.x = 0;
     scene['battlefield'].add(c[i]);
+
+    let mixer = new TR.AnimationMixer(c[i]);
+    const idleClip = animations['idle']._clip;
+    const idleAction = mixer.clipAction(idleClip);
+    idleAction.startAt(Math.random());
+    idleAction.play();
+
+    mixers.push(mixer);
   }
 
   // Lighting
