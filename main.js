@@ -713,7 +713,7 @@ async function loadGargoyle() {
   });
 
   const scale = 20;
-  model.position.set(-16, 2, 5);
+  model.position.set(-16, 3.7, 5);
   model.scale.set(scale, scale, scale);
   scene['battlefield'].add(model);
 }
@@ -774,7 +774,7 @@ async function loadGargoyle2() {
   });
 
   const scale = 18;
-  model.position.set(25, 2, -6);
+  model.position.set(25, 3.6, -6);
   model.rotation.y = Math.PI;
   model.scale.set(scale, scale, scale);
   scene['battlefield'].add(model);
