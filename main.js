@@ -777,11 +777,55 @@ async function loadGargoyle2() {
   scene['battlefield'].add(model);
 }
 
+let magicRing;
+
+async function createMagicRing() {
+  const loader = new TR.TextureLoader();
+  const texture = await new Promise((resolve, reject) => {
+    loader.load(
+      '3d/env/Magic1.png', // Path to the transparent magic ring texture
+      (texture) => resolve(texture),
+      undefined,
+      (error) => reject(error)
+    );
+  });
+
+  texture.magFilter = TR.LinearFilter;
+  texture.minFilter = TR.LinearFilter;
+  texture.wrapS = TR.ClampToEdgeWrapping;
+  texture.wrapT = TR.ClampToEdgeWrapping;
+
+  // Create a material with transparency
+  const material = new TR.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    side: TR.DoubleSide, // If you want to see it from both sides
+  });
+
+  const geometry = new TR.PlaneGeometry(5, 5); // Adjust size as needed
+  magicRing = new TR.Mesh(geometry, material);
+  magicRing.position.set(-7, 1.2, 8); // Adjust position as needed
+  magicRing.rotation.x = -Math.PI / 2; // Adjust rotation to face upwards if needed
+  scene['battlefield'].add(magicRing);
+
+  const fireLight1 = new TR.PointLight(0x1111aa, 10, 10, 1.3); // Warm orange light
+  fireLight1.position.set(-7, 1.2, 7.8); // Set this to the position near the first fire
+  fireLight1.castShadow = false; // Enable shadow casting
+
+  const SHADOWSIZE = 2048;
+
+  fireLight1.shadow.mapSize.width = SHADOWSIZE; // Default is usually 512 or 1024
+  fireLight1.shadow.mapSize.height = SHADOWSIZE;
+
+  scene['battlefield'].add(fireLight1);
+}
+
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
   await loadGargoyle(); // Wait for the arena to load
   await loadGargoyle2(); // Wait for the arena to load
+  await createMagicRing(); // Wait for the arena to load
 }
 
 await initBattlefield(); // Call the async function
@@ -1040,6 +1084,8 @@ function initFire2() {
   scene['battlefield'].add(fire2);
 }
 
+const ROTATION_SPEED = Math.PI / 4;
+
 renderer.setAnimationLoop((time) => {
   const deltaTime = clock.getDelta();
 
@@ -1072,4 +1118,9 @@ renderer.setAnimationLoop((time) => {
   // Disable white outline
   // composer.render();
   renderer.render(scene[currentScene], camera[currentScene]);
+
+  // Rotate the magic ring
+  if (magicRing) {
+    magicRing.rotation.z += ROTATION_SPEED * deltaTime; // Rotate around the Z-axis
+  }
 });
