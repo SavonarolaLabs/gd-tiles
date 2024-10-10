@@ -657,9 +657,134 @@ async function loadArena() {
   scene['battlefield'].add(model);
 }
 
+async function loadGargoyle() {
+  const loader = new GLTFLoader();
+
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      '3d/env/snow-covered_gargoyle_statue.glb',
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
+  });
+
+  const model = gltf.scene;
+
+  // Traverse the model and adjust materials
+  model.traverse((child) => {
+    if (child instanceof TR.Mesh) {
+      // Enable shadows
+      child.receiveShadow = true;
+      child.castShadow = true;
+
+      // Check if the mesh has a material
+      if (child.material) {
+        // Ensure the material will respond to updates
+        child.material.needsUpdate = true;
+
+        // Option 1: Adjust the material color to make it darker
+        if (child.material.color) {
+          // Multiply the color by a factor less than 1 to darken
+          child.material.color.multiplyScalar(0.3); // Darken by 50%
+        }
+
+        // Option 2: If using a standard or physical material, adjust roughness and metalness
+        if (child.material instanceof TR.MeshStandardMaterial || child.material instanceof TR.MeshPhysicalMaterial) {
+          child.material.roughness = Math.min(child.material.roughness + 0.5, 1);
+          child.material.metalness = Math.max(child.material.metalness - 0.5, 0);
+        }
+
+        // Option 3: Adjust the emissive property
+        if (child.material.emissive) {
+          child.material.emissive.multiplyScalar(0.5); // Reduce emissiveness
+        }
+
+        // Option 4: Replace the material with a darker one (e.g., a dark gray material)
+        /*
+        child.material = new TR.MeshStandardMaterial({
+          color: 0x333333, // Dark gray
+          roughness: 1,
+          metalness: 0,
+        });
+        */
+      }
+    }
+  });
+
+  const scale = 20;
+  model.position.set(-16, 2, 5);
+  model.scale.set(scale, scale, scale);
+  scene['battlefield'].add(model);
+}
+
+async function loadGargoyle2() {
+  const loader = new GLTFLoader();
+
+  const gltf = await new Promise((resolve, reject) => {
+    loader.load(
+      '3d/env/snow-covered_gargoyle_statue.glb',
+      (gltf) => resolve(gltf),
+      undefined,
+      (error) => reject(error)
+    );
+  });
+
+  const model = gltf.scene;
+
+  // Traverse the model and adjust materials
+  model.traverse((child) => {
+    if (child instanceof TR.Mesh) {
+      // Enable shadows
+      child.receiveShadow = true;
+      child.castShadow = true;
+
+      // Check if the mesh has a material
+      if (child.material) {
+        // Ensure the material will respond to updates
+        child.material.needsUpdate = true;
+
+        // Option 1: Adjust the material color to make it darker
+        if (child.material.color) {
+          // Multiply the color by a factor less than 1 to darken
+          child.material.color.multiplyScalar(0.3); // Darken by 50%
+        }
+
+        // Option 2: If using a standard or physical material, adjust roughness and metalness
+        if (child.material instanceof TR.MeshStandardMaterial || child.material instanceof TR.MeshPhysicalMaterial) {
+          child.material.roughness = Math.min(child.material.roughness + 0.5, 1);
+          child.material.metalness = Math.max(child.material.metalness - 0.5, 0);
+        }
+
+        // Option 3: Adjust the emissive property
+        if (child.material.emissive) {
+          child.material.emissive.multiplyScalar(0.5); // Reduce emissiveness
+        }
+
+        // Option 4: Replace the material with a darker one (e.g., a dark gray material)
+        /*
+        child.material = new TR.MeshStandardMaterial({
+          color: 0x333333, // Dark gray
+          roughness: 1,
+          metalness: 0,
+        });
+        */
+      }
+    }
+  });
+
+  const scale = 18;
+  model.position.set(25, 2, -6);
+  model.rotation.y = Math.PI;
+  model.scale.set(scale, scale, scale);
+  scene['battlefield'].add(model);
+}
+
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
+  await loadGargoyle(); // Wait for the arena to load
+  await loadGargoyle2(); // Wait for the arena to load
 }
 
 await initBattlefield(); // Call the async function
