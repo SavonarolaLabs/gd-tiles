@@ -589,21 +589,70 @@ function createBattleField() {
   }
 
   // Lighting
-  const ambientLight = new TR.AmbientLight(0x404040, 2); // Soft ambient light
+  const ambientLight = new TR.AmbientLight(0x404040, 2.5); // Soft ambient light
   scene['battlefield'].add(ambientLight);
 
-  const directionalLight = new TR.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(10, 20, 10); // Adjust light position for better shadows
-  directionalLight.castShadow = true; // Enable shadow casting
-  directionalLight.shadow.mapSize.width = 2048; // Increase shadow resolution for sharper shadows
-  directionalLight.shadow.mapSize.height = 2048;
-  directionalLight.shadow.camera.near = 0.5;
-  directionalLight.shadow.camera.far = 50;
-  directionalLight.shadow.camera.left = -FIELD_SIZE;
-  directionalLight.shadow.camera.right = FIELD_SIZE;
-  directionalLight.shadow.camera.top = FIELD_SIZE;
-  directionalLight.shadow.camera.bottom = -FIELD_SIZE;
-  scene['battlefield'].add(directionalLight);
+  //  let x1 = 25,
+  //    y1 = 13.6,
+  //    z1 = -6;
+
+  let x1 = 17.3,
+    y1 = 9,
+    z1 = -17;
+  let x2 = 29.8,
+    y2 = 9,
+    z2 = 5;
+  // Add two point lights for the fires
+  const intensity = 40;
+  const distance = 45;
+  const decay = 1.1;
+  const fireLight1 = new TR.PointLight(0xffaa00, intensity, distance, decay); // Warm orange light
+  fireLight1.position.set(x1, y1, z1); // Set this to the position near the first fire
+  fireLight1.castShadow = true; // Enable shadow casting
+
+  const SHADOWSIZE = 2048;
+
+  fireLight1.shadow.mapSize.width = SHADOWSIZE; // Default is usually 512 or 1024
+  fireLight1.shadow.mapSize.height = SHADOWSIZE;
+
+  scene['battlefield'].add(fireLight1);
+
+  const lightHelper1 = new TR.Mesh(
+    new TR.SphereGeometry(1.5, 16, 16), // Sphere geometry with a small radius
+    new TR.MeshBasicMaterial({ color: 0xff0000 }) // Orange color to match the light
+  );
+  lightHelper1.position.set(x1, y1, z1); // Set the sphere to the same position as the light
+  //scene['battlefield'].add(lightHelper1);
+
+  const lightHelper2 = new TR.Mesh(
+    new TR.SphereGeometry(1.5, 16, 16), // Sphere geometry with a small radius
+    new TR.MeshBasicMaterial({ color: 0xff0000 }) // Orange color to match the light
+  );
+  lightHelper2.position.set(x2, y2, z2); // Set the sphere to the same position as the light
+  //scene['battlefield'].add(lightHelper2);
+
+  const fireLight2 = new TR.PointLight(0xffaa00, intensity, distance, decay); // Warm orange light
+  fireLight2.position.set(x2, y2, z2); // Set this to the position near the second fire
+  fireLight2.castShadow = true; // Enable shadow casting
+  scene['battlefield'].add(fireLight2);
+
+  fireLight2.shadow.mapSize.width = SHADOWSIZE; // Default is usually 512 or 1024
+  fireLight2.shadow.mapSize.height = SHADOWSIZE;
+
+  // Optionally adjust the shadow quality for both lights
+  //fireLight1.shadow.mapSize.width = 1024;
+  //fireLight1.shadow.mapSize.height = 1024;
+  //fireLight1.shadow.camera.near = 0.5;
+  //fireLight1.shadow.camera.far = 50;
+
+  //fireLight2.shadow.mapSize.width = 1024;
+  //fireLight2.shadow.mapSize.height = 1024;
+  //fireLight2.shadow.camera.near = 0.5;
+  //fireLight2.shadow.camera.far = 50;
+
+  // You can also adjust the intensity and range of the lights
+
+  //scene['battlefield'].add(directionalLight);
 
   camera['battlefield'] = createPerspectiveCamera();
   //camera['battlefield'] = createIsometricCamera();
@@ -643,7 +692,7 @@ async function loadArena() {
   const model = gltf.scene;
   model.traverse((child) => {
     if (child instanceof TR.Mesh) {
-      //child.castShadow = true;
+      child.castShadow = true;
       child.receiveShadow = true;
     }
   });
@@ -672,43 +721,16 @@ async function loadGargoyle() {
 
   const model = gltf.scene;
 
-  // Traverse the model and adjust materials
   model.traverse((child) => {
     if (child instanceof TR.Mesh) {
-      // Enable shadows
       child.receiveShadow = true;
       child.castShadow = true;
 
-      // Check if the mesh has a material
       if (child.material) {
-        // Ensure the material will respond to updates
         child.material.needsUpdate = true;
-
-        // Option 1: Adjust the material color to make it darker
         if (child.material.color) {
-          // Multiply the color by a factor less than 1 to darken
-          child.material.color.multiplyScalar(0.3); // Darken by 50%
+          child.material.color.multiplyScalar(0.03);
         }
-
-        // Option 2: If using a standard or physical material, adjust roughness and metalness
-        if (child.material instanceof TR.MeshStandardMaterial || child.material instanceof TR.MeshPhysicalMaterial) {
-          child.material.roughness = Math.min(child.material.roughness + 0.5, 1);
-          child.material.metalness = Math.max(child.material.metalness - 0.5, 0);
-        }
-
-        // Option 3: Adjust the emissive property
-        if (child.material.emissive) {
-          child.material.emissive.multiplyScalar(0.5); // Reduce emissiveness
-        }
-
-        // Option 4: Replace the material with a darker one (e.g., a dark gray material)
-        /*
-        child.material = new TR.MeshStandardMaterial({
-          color: 0x333333, // Dark gray
-          roughness: 1,
-          metalness: 0,
-        });
-        */
       }
     }
   });
@@ -733,49 +755,23 @@ async function loadGargoyle2() {
 
   const model = gltf.scene;
 
-  // Traverse the model and adjust materials
   model.traverse((child) => {
     if (child instanceof TR.Mesh) {
-      // Enable shadows
       child.receiveShadow = true;
       child.castShadow = true;
 
-      // Check if the mesh has a material
       if (child.material) {
-        // Ensure the material will respond to updates
         child.material.needsUpdate = true;
 
-        // Option 1: Adjust the material color to make it darker
-        if (child.material.color) {
-          // Multiply the color by a factor less than 1 to darken
-          child.material.color.multiplyScalar(0.3); // Darken by 50%
-        }
-
-        // Option 2: If using a standard or physical material, adjust roughness and metalness
-        if (child.material instanceof TR.MeshStandardMaterial || child.material instanceof TR.MeshPhysicalMaterial) {
-          child.material.roughness = Math.min(child.material.roughness + 0.5, 1);
-          child.material.metalness = Math.max(child.material.metalness - 0.5, 0);
-        }
-
-        // Option 3: Adjust the emissive property
-        if (child.material.emissive) {
-          child.material.emissive.multiplyScalar(0.5); // Reduce emissiveness
-        }
-
-        // Option 4: Replace the material with a darker one (e.g., a dark gray material)
-        /*
-        child.material = new TR.MeshStandardMaterial({
-          color: 0x333333, // Dark gray
-          roughness: 1,
-          metalness: 0,
-        });
-        */
+        const fireColor = new TR.Color(0xffaa00); // A warm orange color
+        child.material.color.multiply(fireColor);
+        child.material.color.multiplyScalar(0.5); // Darken by 50%
       }
     }
   });
 
   const scale = 18;
-  model.position.set(25, 3.6, -6);
+  model.position.set(25, 2.6, -6);
   model.rotation.y = Math.PI;
   model.scale.set(scale, scale, scale);
   scene['battlefield'].add(model);
@@ -1029,7 +1025,7 @@ function initFire2() {
 
   var wireframeMat = new TR.MeshBasicMaterial({
     color: new TR.Color(0xffffff),
-    wireframe: true,
+    wireframe: false,
   });
 
   fire2 = new Fire(fireTex);
@@ -1039,7 +1035,6 @@ function initFire2() {
   wireframe.visible = true;
   wireframe.visible = false;
 
-  console.log(fire);
   fire2.scale.set(6.5, 6.5, 6.5);
   fire2.position.set(20, 9.0, -20.2);
   scene['battlefield'].add(fire2);
