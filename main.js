@@ -7,6 +7,7 @@ import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { Fire } from './Fire';
 
 // Constants
 const MAP_SIZE = 16;
@@ -991,6 +992,59 @@ function updateWindAndSnowMaterial(deltaTime, elapsedTime) {
   material.uniforms.uTime.value = elapsedTime;
 }
 
+// FIRE
+
+let fire, fire2;
+
+initFire();
+initFire2();
+
+function initFire() {
+  var loader = new TR.TextureLoader();
+
+  var fireTex = loader.load('assets/Fire.png');
+
+  var wireframeMat = new TR.MeshBasicMaterial({
+    color: new TR.Color(0xffffff),
+    wireframe: true,
+  });
+
+  fire = new Fire(fireTex);
+
+  var wireframe = new TR.Mesh(fire.geometry, wireframeMat.clone());
+  fire.add(wireframe);
+  wireframe.visible = true;
+  wireframe.visible = false;
+
+  console.log(fire);
+  fire.scale.set(5, 5, 5);
+  fire.position.set(30, 9.0, 5);
+  scene['battlefield'].add(fire);
+}
+
+function initFire2() {
+  var loader = new TR.TextureLoader();
+
+  var fireTex = loader.load('assets/Fire.png');
+
+  var wireframeMat = new TR.MeshBasicMaterial({
+    color: new TR.Color(0xffffff),
+    wireframe: true,
+  });
+
+  fire2 = new Fire(fireTex);
+
+  var wireframe = new TR.Mesh(fire.geometry, wireframeMat.clone());
+  fire2.add(wireframe);
+  wireframe.visible = true;
+  wireframe.visible = false;
+
+  console.log(fire);
+  fire2.scale.set(6.5, 6.5, 6.5);
+  fire2.position.set(20, 9.0, -20.2);
+  scene['battlefield'].add(fire2);
+}
+
 renderer.setAnimationLoop((time) => {
   const deltaTime = clock.getDelta();
 
@@ -1017,7 +1071,10 @@ renderer.setAnimationLoop((time) => {
   if (points) {
     points.position.copy(camera['battlefield'].position);
   }
-  renderer.render(scene[currentScene], camera[currentScene]);
+
+  fire.update(clock.getElapsedTime());
+  fire2.update(clock.getElapsedTime());
   // Disable white outline
   // composer.render();
+  renderer.render(scene[currentScene], camera[currentScene]);
 });
