@@ -23,8 +23,8 @@ const GRID_COLOR = 0x888888;
 //let currentScene = 'map';
 let currentScene = 'battlefield';
 const scene = { map: new TR.Scene() };
-const renderer = new TR.WebGLRenderer();
-renderer.setPixelRatio(window.devicePixelRatio);
+const renderer = new TR.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = TR.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -505,59 +505,22 @@ function rotateRight() {
 await loadHolyElemental();
 await loadAllAnimations();
 outlinePass.selectedObjects.push(elementalModel);
-playAnimation('idle');
-
-function createAnotherHolyElemental(position) {
-  // Clone the model
-  const clonedModel = elementalModel.clone();
-
-  // Set the position for the cloned model
-  clonedModel.position.copy(position);
-  scene['map'].add(clonedModel);
-
-  // Create a new AnimationMixer for the cloned model
-  const clonedMixer = new TR.AnimationMixer(clonedModel);
-
-  // Play the same animation on the clone
-  const clip = clonedMixer.existingAction(holyElementalMixer._actions[0]._clip);
-  if (clip) clip.play();
-
-  return clonedMixer;
-}
-
-//animate();
-
-renderer.setAnimationLoop((time) => {
-  const deltaTime = (time - previousTime) * 0.001;
-  previousTime = time;
-
-  if (warriorTile) {
-    updateWarriorFrame(time);
-  }
-  if (treeTile) {
-    updateTreeFrame(time);
-  }
-  if (gifPlane) {
-    updateGifFrame(time);
-  }
-  if (holyElementalMixer) {
-    holyElementalMixer.update(deltaTime);
-  }
-
-  mixers.forEach((mixer) => {
-    mixer.update(deltaTime);
-  });
-
-  renderer.render(scene[currentScene], camera[currentScene]);
-  // disable white outline
-  //composer.render();
-});
+//playAnimation('idle');
 
 window.addEventListener('resize', onWindowResize);
 
 let mixers = [];
 
+const sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
+
 function onWindowResize() {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+
   const newAspectRatio = window.innerWidth / window.innerHeight;
 
   if (newAspectRatio >= 1) {
@@ -580,6 +543,7 @@ function onWindowResize() {
     camera['battlefield'].updateProjectionMatrix(); // Update projection matrix
   }
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   composer.setSize(window.innerWidth, window.innerHeight);
 }
 
@@ -654,9 +618,7 @@ function createPerspectiveCamera() {
     1000 // Far plane
   );
 
-  //camera.position.set(-24, 24, 36); // Lower and closer to the scene
-  camera.position.set(-24 * 1, 24 * 1, 36 * 1); // Lower and closer to the scene
-
+  camera.position.set(-24, 24, 36);
   camera.lookAt(0, 4, 8); // Center on the battlefield
 
   return camera;
@@ -667,10 +629,10 @@ async function loadArena() {
 
   const gltf = await new Promise((resolve, reject) => {
     loader.load(
-      //      '3d/arena/hell_arena.glb',
-      //'3d/arena/older_castle_ruins.glb',
+      // '3d/arena/hell_arena.glb',
+      // '3d/arena/older_castle_ruins.glb',
       '3d/arena/dwarf_modelkit.glb',
-      //'3d/arena/battlefield.glb',
+      // '3d/arena/battlefield.glb',
       (gltf) => resolve(gltf),
       undefined,
       (error) => reject(error)
@@ -684,17 +646,6 @@ async function loadArena() {
       child.receiveShadow = true;
     }
   });
-  //model.position.set(-4, 0, -14);
-  //model.rotation.x = -Math.PI / 2;
-
-  //'3d/arena/older_castle_ruins.glb',
-  //const scale = 0.02;
-
-  //'3d/arena/ruins.glb'
-  // const scale = 0.1;
-  // model.position.y = 5.5;
-  // model.position.x = +8;
-  // model.rotation.y = -Math.PI / 2;
 
   const scale = 1;
   model.position.y = 0.5;
@@ -709,8 +660,239 @@ async function loadArena() {
 async function initBattlefield() {
   createBattleField(); // Initialize the battlefield
   await loadArena(); // Wait for the arena to load
-  //await loadSkybox();
-  //simpleSkybox();
 }
 
-initBattlefield(); // Call the async function
+await initBattlefield(); // Call the async function
+
+// SNOW
+
+const parameters = {};
+parameters.count = 2000;
+parameters.randomness = 0.5; //?
+parameters.randomnessPower = 3; //?
+parameters.sizeMin = 1.0;
+parameters.sizeMax = 4.0;
+parameters.opacityMin = 0.1;
+parameters.opacityMax = 0.4;
+parameters.gravity = 25.0;
+
+let geometry = null;
+let material = null;
+let points = null;
+
+let wind = {
+  //?
+  current: 0,
+  force: 0.1,
+  target: 0.1,
+  min: 0.1,
+  max: 0.2,
+  easing: 0.005,
+};
+
+const generateSnow = () => {
+  if (points !== null) {
+    geometry.dispose();
+    material.dispose();
+    scene['battlefield'].remove(points); // Remove from scene instead of camera
+  }
+
+  /**
+   * Geometry
+   */
+  geometry = new TR.BufferGeometry();
+
+  const positions = new Float32Array(parameters.count * 3);
+  const scales = new Float32Array(parameters.count * 1);
+  const randomness = new Float32Array(parameters.count * 3);
+  const speeds = new Float32Array(parameters.count * 3);
+  const rotations = new Float32Array(parameters.count * 3);
+  const opacities = new Float32Array(parameters.count * 1);
+
+  for (let i = 0; i < parameters.count; i++) {
+    const i3 = i * 3;
+
+    // Position in camera space
+    positions[i3] = (Math.random() - 0.5) * 20; // X positions between -10 and +10
+    positions[i3 + 1] = (Math.random() - 0.5) * 20; // Y positions between -10 and +10
+    positions[i3 + 2] = -Math.random() * 30; // Z positions between 0 and -30 (in front of the camera)
+
+    // Randomness
+    const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness;
+    const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness;
+    const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parameters.randomness;
+
+    // Random Positioning
+    randomness[i3 + 0] = randomX;
+    randomness[i3 + 1] = randomY;
+    randomness[i3 + 2] = randomZ;
+
+    // Random Opacity
+    opacities[i] = Math.random() * (parameters.opacityMax - parameters.opacityMin) + parameters.opacityMin;
+
+    // Scale
+    scales[i] = Math.random() * (parameters.sizeMax - parameters.sizeMin) + parameters.sizeMin;
+
+    // Speeds
+    speeds[i3 + 0] = 1 + Math.random();
+    speeds[i3 + 1] = Math.random() * (0.06 - 0.05) + 0.05;
+    speeds[i3 + 2] = Math.random() * (0.2 - 0.05) + 0.05;
+
+    // Rotations
+    rotations[i3 + 0] = Math.random() * 2 * Math.PI;
+    rotations[i3 + 1] = Math.random() * 20;
+    rotations[i3 + 2] = Math.random() * 10;
+  }
+
+  geometry.setAttribute('position', new TR.BufferAttribute(positions, 3));
+  geometry.setAttribute('aScale', new TR.BufferAttribute(scales, 1));
+  geometry.setAttribute('aRandomness', new TR.BufferAttribute(randomness, 3));
+  geometry.setAttribute('aSpeed', new TR.BufferAttribute(speeds, 3));
+  geometry.setAttribute('aRotation', new TR.BufferAttribute(rotations, 3));
+  geometry.setAttribute('aOpacity', new TR.BufferAttribute(opacities, 1));
+
+  /**
+   * Textures
+   */
+  const textureLoader = new TR.TextureLoader();
+  const particleTexture = textureLoader.load('https://assets.codepen.io/122136/snowflake_1.png');
+
+  /**
+   * Material
+   */
+  material = new TR.ShaderMaterial({
+    depthWrite: false,
+    blending: TR.AdditiveBlending,
+    transparent: true,
+    vertexColors: true,
+    vertexShader: `
+      precision mediump float;
+
+      attribute vec4 aPosition;
+      attribute float aOpacity;
+      attribute float aScale;
+      attribute vec3 aRotation;
+      attribute float aSize;
+      attribute vec3 aSpeed;
+
+      uniform float uTime;
+      uniform float uSize;
+      uniform float uGravity;
+      uniform vec3 uSpeed;
+      uniform vec3 uWorldSize;
+      uniform mat4 uProjection;
+      uniform float uWind;
+
+      varying float vRotation;
+      varying float vOpacity;
+
+      void main() {
+
+        vec4 modelPosition = vec4(position, 1.0);
+
+        vOpacity = aOpacity;
+
+        vRotation = aRotation.x + uTime * aRotation.y;
+
+        modelPosition.x = mod(modelPosition.x + uTime + uWind * aSpeed.x, uWorldSize.x * 2.0) - uWorldSize.x;
+
+        modelPosition.y = mod(modelPosition.y - uTime * aSpeed.y * uGravity, uWorldSize.y * 2.0) - uWorldSize.y;
+
+        modelPosition.x += (sin(uTime * aSpeed.z) * aRotation.z);
+        modelPosition.z += cos(uTime * aSpeed.z) * aRotation.z;
+
+        // Since the particle system is attached to the camera, modelViewMatrix is identity
+        vec4 viewPosition = modelViewMatrix * modelPosition;
+        vec4 projectedPosition = projectionMatrix * viewPosition;
+        gl_Position = projectedPosition;
+
+        gl_PointSize = uSize * aScale;
+        gl_PointSize *= (1.0 / -viewPosition.z);
+      }
+    `,
+    fragmentShader: `
+      precision mediump float;
+      varying float vOpacity;
+      uniform sampler2D uTexture;
+
+      varying float vRotation;
+
+      void main() {
+
+        vec2 rotated = vec2(
+          cos(vRotation) * (gl_PointCoord.x - 0.5) + sin(vRotation) * (gl_PointCoord.y - 0.5) + 0.5,
+          cos(vRotation) * (gl_PointCoord.y - 0.5) - sin(vRotation) * (gl_PointCoord.x - 0.5) + 0.5
+        );
+
+        vec4 snowflake = texture2D(uTexture, rotated);
+
+        gl_FragColor = vec4(snowflake.rgb, snowflake.a * vOpacity);
+      }
+    `,
+    uniforms: {
+      uTime: { value: 0 },
+      uSize: { value: 40 * renderer.getPixelRatio() },
+      uSpeed: { value: new TR.Vector3(0.0000001, 0.02, Math.random()) },
+      uGravity: { value: parameters.gravity },
+      uWorldSize: { value: new TR.Vector3(10, 10, 10) }, // Adjusted size
+      uTexture: { value: particleTexture },
+      uRotation: { value: new TR.Vector3(1, 1, 1) },
+      uWind: { value: 0 },
+    },
+  });
+
+  points = new TR.Points(geometry, material);
+
+  // Add the points to the scene instead of the camera
+  scene['battlefield'].add(points);
+};
+
+scene['battlefield'].background = null;
+
+generateSnow();
+
+function updateWindAndSnowMaterial(deltaTime, elapsedTime) {
+  wind.force += (wind.target - wind.force) * wind.easing;
+  wind.current += wind.force * (deltaTime * 0.2);
+
+  // Current Wind Uniform
+  material.uniforms.uWind.value = wind.current;
+
+  if (Math.random() > 0.995) {
+    wind.target = (wind.min + Math.random() * (wind.max - wind.min)) * (Math.random() > 0.5 ? -1 : 1) * 100;
+  }
+
+  // Elapsed Time Uniform update
+  material.uniforms.uTime.value = elapsedTime;
+}
+
+renderer.setAnimationLoop((time) => {
+  const deltaTime = clock.getDelta();
+
+  if (warriorTile) {
+    updateWarriorFrame(time);
+  }
+  if (treeTile) {
+    updateTreeFrame(time);
+  }
+  if (gifPlane) {
+    updateGifFrame(time);
+  }
+  if (holyElementalMixer) {
+    holyElementalMixer.update(deltaTime);
+  }
+
+  mixers.forEach((mixer) => {
+    mixer.update(deltaTime);
+  });
+
+  updateWindAndSnowMaterial(deltaTime, clock.getElapsedTime());
+
+  // Update particle system position to match the camera's position
+  if (points) {
+    points.position.copy(camera['battlefield'].position);
+  }
+  renderer.render(scene[currentScene], camera[currentScene]);
+  // Disable white outline
+  // composer.render();
+});
